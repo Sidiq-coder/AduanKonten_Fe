@@ -20,6 +20,14 @@ import { FakultasSidebar } from "./components/FakultasSidebar";
 import { FakultasTicketOverview } from "./components/FakultasTicketOverview";
 import { FakultasRecentActivity } from "./components/FakultasRecentActivity";
 import { FakultasPriorityTickets } from "./components/FakultasPriorityTickets";
+import campusBackground from "./assets/unila-logo.png";
+
+const dashboardBackgroundStyle = {
+  backgroundImage: `linear-gradient(135deg, rgba(3, 16, 40, 0.92), rgba(0, 61, 130, 0.85)), url(${campusBackground})`,
+  backgroundSize: "cover",
+  backgroundPosition: "center",
+  backgroundAttachment: "fixed",
+};
 // Admin Dashboard Layout + Home Content
 function AdminLayout() {
   const navigate = useNavigate();
@@ -51,11 +59,13 @@ function AdminLayout() {
     navigate('/login');
   };
   
-  return (<div className="min-h-screen bg-gray-50 flex">
+  return (<div className="min-h-screen flex" style={dashboardBackgroundStyle}>
       <Sidebar currentPage={resolveSection()} onNavigate={handleNavigate} onLogout={handleLogout}/>
-      <main className="flex-1 min-h-screen p-6 bg-gray-50">
-        <div className="mx-auto w-full max-w-7xl">
-          <Outlet />
+      <main className="flex-1 min-h-screen p-8">
+        <div className="mx-auto w-full max-w-7xl space-y-6">
+          <div className="dashboard-shell">
+            <Outlet />
+          </div>
         </div>
       </main>
     </div>);
@@ -94,11 +104,13 @@ function FakultasLayout() {
     await logout();
     navigate('/login');
   };
-  return (<div className="min-h-screen bg-gray-50 flex">
+  return (<div className="min-h-screen flex" style={dashboardBackgroundStyle}>
       <FakultasSidebar currentPage={resolveSection()} onNavigate={handleNavigate} fakultasName={user?.faculty?.name || 'Admin Fakultas'} userEmail={user?.email || ''} onLogout={handleLogout}/>
-      <main className="flex-1 min-h-screen p-6">
-        <div className="max-w-7xl mx-auto w-full">
-          <Outlet />
+      <main className="flex-1 min-h-screen p-8">
+        <div className="max-w-7xl mx-auto w-full space-y-6">
+          <div className="dashboard-shell">
+            <Outlet />
+          </div>
         </div>
       </main>
     </div>);

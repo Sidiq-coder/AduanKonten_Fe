@@ -70,8 +70,8 @@ export function FakultasPriorityTickets({ fakultasName }) {
             <CheckCircle2 size={20} className="text-[#388E3C]"/>
           </div>
           <div>
-            <h2 className="text-foreground">Tugas Aktif</h2>
-            <p className="text-xs text-muted-foreground">Tiket prioritas yang sudah ditugaskan</p>
+            <h2 className="text-white text-lg font-semibold">Tugas Aktif</h2>
+            <p className="text-xs text-white/70">Tiket prioritas yang sudah ditugaskan</p>
           </div>
         </div>
 
@@ -118,8 +118,8 @@ export function FakultasPriorityTickets({ fakultasName }) {
             <Clock size={20} className="text-[#64748B]"/>
           </div>
           <div>
-            <h2 className="text-foreground">Menunggu Penugasan</h2>
-            <p className="text-xs text-muted-foreground">Tiket prioritas yang belum memiliki admin {fakultasName}</p>
+            <h2 className="text-white text-lg font-semibold">Menunggu Penugasan</h2>
+            <p className="text-xs text-white/70">Tiket prioritas yang belum memiliki admin {fakultasName}</p>
           </div>
         </div>
 

@@ -86,22 +86,10 @@ export function FakultasTicketsPage({ onViewTicket, fakultasName }) {
       return statusConfig[statusKey] || statusConfig.submitted;
     };
 
-    const getAssignedLabel = (ticket) => {
-      if (ticket.assignment?.assigned_to_user?.name) {
-        return ticket.assignment.assigned_to_user.name;
-      }
-      if (ticket.assignment?.faculty?.name) {
-        return ticket.assignment.faculty.name;
-      }
-      if (facultyDisplayName) {
-        return facultyDisplayName;
-      }
-      return '-';
-    };
     return (<div>
       <div className="mb-8">
-        <h1 className="text-foreground mb-2">Tiket {facultyDisplayName}</h1>
-        <p className="text-muted-foreground">Kelola semua tiket aduan konten dari {facultyDisplayName}</p>
+        <h1 className="text-white text-2xl font-semibold mb-2">Tiket {facultyDisplayName}</h1>
+        <p className="text-white/80">Kelola semua tiket aduan konten dari {facultyDisplayName}</p>
       </div>
 
       {/* Filters */}
@@ -148,11 +136,9 @@ export function FakultasTicketsPage({ onViewTicket, fakultasName }) {
             <thead>
               <tr className="border-b border-border bg-muted/30">
                 <th className="text-left py-4 px-6 text-sm text-foreground">ID Tiket</th>
-                <th className="text-left py-4 px-6 text-sm text-foreground">Judul</th>
                 <th className="text-left py-4 px-6 text-sm text-foreground">Kategori</th>
                 <th className="text-left py-4 px-6 text-sm text-foreground">Status</th>
                 <th className="text-left py-4 px-6 text-sm text-foreground">Prioritas</th>
-                <th className="text-left py-4 px-6 text-sm text-foreground">Ditugaskan</th>
                 <th className="text-left py-4 px-6 text-sm text-foreground">Tanggal</th>
                 <th className="text-left py-4 px-6 text-sm text-foreground">Aksi</th>
               </tr>
@@ -171,11 +157,6 @@ export function FakultasTicketsPage({ onViewTicket, fakultasName }) {
                     <span className="text-sm text-foreground">{ticket.ticket_id}</span>
                   </td>
                   <td className="py-4 px-6">
-                    <span className="text-sm text-foreground max-w-xs truncate block">
-                      {ticket.description?.substring(0, 50) || 'Tidak ada deskripsi'}...
-                    </span>
-                  </td>
-                  <td className="py-4 px-6">
                     <span className="text-sm text-muted-foreground">{ticket.category?.name || '-'}</span>
                   </td>
                   <td className="py-4 px-6">
@@ -192,11 +173,6 @@ export function FakultasTicketsPage({ onViewTicket, fakultasName }) {
                     <Badge className={`${priorityConfig[ticket.priority]?.color || priorityConfig.low.color} border`}>
                       {priorityConfig[ticket.priority]?.label || ticket.priority}
                     </Badge>
-                  </td>
-                  <td className="py-4 px-6">
-                    <span className="text-sm text-muted-foreground">
-                      {getAssignedLabel(ticket)}
-                    </span>
                   </td>
                   <td className="py-4 px-6">
                     <span className="text-sm text-muted-foreground">

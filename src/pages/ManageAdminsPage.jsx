@@ -162,9 +162,9 @@ export function ManageAdminsPage() {
 
     return (<div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-foreground mb-1">Manajemen Admin</h1>
-          <p className="text-muted-foreground">
+        <div className="white-card bg-white px-6 py-5 rounded-2xl shadow-sm space-y-1 w-full sm:w-fit sm:max-w-lg">
+          <h1 className="text-foreground text-xl font-semibold">Manajemen Admin</h1>
+          <p className="text-sm text-muted-foreground">
             Tambah, ubah, dan hapus admin super maupun fakultas
           </p>
         </div>

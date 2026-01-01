@@ -84,13 +84,15 @@ export function FakultasRecentActivity({ fakultasName }) {
     );
 
     return (<div>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
           <Activity size={24} className="text-primary"/>
-          <h2 className="text-foreground">Aktivitas Tiket {fakultasName}</h2>
+          <h2 className="text-white text-lg font-semibold whitespace-nowrap">
+            Aktivitas Tiket {fakultasName}
+          </h2>
         </div>
         
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
             <Filter size={16} className="text-muted-foreground"/>
             <Select value={statusFilter} onValueChange={setStatusFilter}>

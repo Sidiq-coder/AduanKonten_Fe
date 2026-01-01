@@ -141,17 +141,6 @@ export function LoginPage() {
                 </p>)}
             </div>
 
-            {/* Remember Me & Forgot Password */}
-            <div className="flex items-center justify-between text-sm">
-              <label className="flex items-center gap-2 cursor-pointer group">
-                <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-[#6B7FE8] focus:ring-[#6B7FE8] focus:ring-offset-0 transition-colors"/>
-                <span className="text-muted-foreground group-hover:text-foreground transition-colors">Ingat saya</span>
-              </label>
-              <button type="button" className="text-primary hover:text-[#003D82] transition-colors">
-                Lupa password?
-              </button>
-            </div>
-
             {/* Submit Button */}
             <Button type="submit" disabled={isLoading} className="w-full bg-gradient-to-r from-primary to-[#003D82] hover:from-[#003D82] hover:to-[#002855] text-white h-12 rounded-xl shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed">
               {isLoading ? (<>

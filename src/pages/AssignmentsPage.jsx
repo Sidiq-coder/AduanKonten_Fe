@@ -6,7 +6,7 @@ import { Input } from "../components/ui/input";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { useAssignments } from "../hooks/useAssignments";
-import { useFaculties, useUsers } from "../hooks/useMasterData";
+import { useUsers } from "../hooks/useMasterData";
 import { toast } from "sonner@2.0.3";
 
 const statusStyles = {
@@ -20,7 +20,6 @@ export function AssignmentsPage() {
   const navigate = useNavigate();
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [facultyFilter, setFacultyFilter] = useState("all");
   const [adminFilter, setAdminFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -31,18 +30,16 @@ export function AssignmentsPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, facultyFilter, adminFilter]);
+  }, [searchQuery, adminFilter]);
 
   const filters = useMemo(() => ({
     search: searchQuery || undefined,
-    faculty_id: facultyFilter !== "all" ? facultyFilter : undefined,
     assigned_to: adminFilter !== "all" ? adminFilter : undefined,
     page: currentPage,
     per_page: 10,
-  }), [searchQuery, facultyFilter, adminFilter, currentPage]);
+  }), [searchQuery, adminFilter, currentPage]);
 
   const { assignments, loading, error, pagination } = useAssignments(filters);
-  const { faculties } = useFaculties();
   const { users: facultyAdmins } = useUsers("admin_fakultas");
 
   useEffect(() => {
@@ -70,9 +67,9 @@ export function AssignmentsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-[#2D3748] mb-1">Daftar Penugasan</h1>
-          <p className="text-sm text-[#6B7280]">Pantau penugasan admin fakultas untuk setiap tiket</p>
+        <div className="white-card bg-white px-6 py-5 rounded-2xl shadow-sm space-y-1">
+          <h1 className="text-foreground text-xl font-semibold">Daftar Penugasan</h1>
+          <p className="text-sm text-muted-foreground">Pantau penugasan admin fakultas untuk setiap tiket</p>
         </div>
       </div>
 
@@ -82,7 +79,7 @@ export function AssignmentsPage() {
           <h3 className="text-[#2D3748]">Filter Penugasan</h3>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="lg:col-span-2 relative">
             <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
             <Input
@@ -92,20 +89,6 @@ export function AssignmentsPage() {
               className="pl-11 bg-[#F9FAFB] border-gray-200 rounded-xl h-11 focus:bg-white"
             />
           </div>
-
-          <Select value={facultyFilter} onValueChange={setFacultyFilter}>
-            <SelectTrigger className="bg-[#F9FAFB] border-gray-200 rounded-xl h-11 hover:bg-white">
-              <SelectValue placeholder="Semua Fakultas" />
-            </SelectTrigger>
-            <SelectContent className="rounded-xl">
-              <SelectItem value="all">Semua Fakultas</SelectItem>
-              {faculties?.map((faculty) => (
-                <SelectItem key={faculty.id} value={faculty.id.toString()}>
-                  {faculty.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
 
           <Select value={adminFilter} onValueChange={setAdminFilter}>
             <SelectTrigger className="bg-[#F9FAFB] border-gray-200 rounded-xl h-11 hover:bg-white">
@@ -137,9 +120,7 @@ export function AssignmentsPage() {
                 <th className="text-left px-6 py-4 text-xs text-[#6B7280] uppercase tracking-wider">Tiket</th>
                 <th className="text-left px-6 py-4 text-xs text-[#6B7280] uppercase tracking-wider">Pelapor</th>
                 <th className="text-left px-6 py-4 text-xs text-[#6B7280] uppercase tracking-wider">Admin</th>
-                <th className="text-left px-6 py-4 text-xs text-[#6B7280] uppercase tracking-wider">Fakultas</th>
                 <th className="text-left px-6 py-4 text-xs text-[#6B7280] uppercase tracking-wider">Batas Waktu</th>
-                <th className="text-left px-6 py-4 text-xs text-[#6B7280] uppercase tracking-wider">Catatan</th>
                 <th className="text-left px-6 py-4 text-xs text-[#6B7280] uppercase tracking-wider">Status</th>
                 <th className="text-left px-6 py-4 text-xs text-[#6B7280] uppercase tracking-wider">Aksi</th>
               </tr>
@@ -170,9 +151,6 @@ export function AssignmentsPage() {
                         <p className="text-xs text-[#6B7280]">Ditugaskan oleh {assignment.assigned_by_user?.name || "-"}</p>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-sm text-[#1F2937]">{assignment.faculty?.name || assignment.assigned_to_user?.faculty?.name || "-"}</p>
-                      </td>
-                      <td className="px-6 py-4">
                         <p className="text-sm text-[#1F2937]">
                           {assignment.due_date
                             ? new Date(assignment.due_date).toLocaleDateString("id-ID", {
@@ -181,11 +159,6 @@ export function AssignmentsPage() {
                                 year: "numeric",
                               })
                             : "Belum ditentukan"}
-                        </p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="text-sm text-[#4B5563]">
-                          {assignment.notes || report.description || "-"}
                         </p>
                       </td>
                       <td className="px-6 py-4">{renderStatus(report.report_status)}</td>

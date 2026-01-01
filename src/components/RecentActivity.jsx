@@ -181,9 +181,8 @@ export function RecentActivity() {
 
     return (<div className="space-y-6">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-[#1F2937]">Aktivitas Terkini</h2>
-          <p className="text-sm text-[#6B7280]">Data diambil langsung dari audit log backend</p>
+        <div className="inline-flex">
+          <h2 className="text-foreground bg-white rounded-2xl px-4 py-2 shadow-sm">Aktivitas Terkini</h2>
         </div>
         <div className="flex flex-wrap gap-3">
           <Select value={timeRange} onValueChange={setTimeRange}>
@@ -223,7 +222,7 @@ export function RecentActivity() {
             </SelectContent>
           </Select>
 
-          <button type="button" onClick={handleRefresh} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#EEF2FF] text-[#4338CA] text-sm font-medium hover:bg-[#E0E7FF] transition" aria-label="Segarkan data aktivitas">
+          <button type="button" onClick={handleRefresh} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-[#003D82] text-sm font-semibold border border-white/70 shadow-sm hover:border-[#003D82] hover:bg-[#F0F4FF] transition" aria-label="Segarkan data aktivitas">
             <RefreshCcw size={16} /> Segarkan
           </button>
         </div>

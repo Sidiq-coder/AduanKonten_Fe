@@ -46,9 +46,9 @@ export function TicketsPage({ onViewTicket }) {
     return (<div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-[#2D3748] mb-2">Daftar Tiket</h1>
-          <p className="text-sm text-[#6B7280]">Kelola dan pantau semua tiket pengaduan</p>
+        <div className="white-card bg-white px-6 py-5 rounded-2xl shadow-sm space-y-1">
+          <h1 className="text-foreground text-xl font-semibold">Daftar Tiket</h1>
+          <p className="text-sm text-muted-foreground">Kelola dan pantau semua tiket pengaduan</p>
         </div>
       </div>
 

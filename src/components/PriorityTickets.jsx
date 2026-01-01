@@ -4,10 +4,10 @@ import { useReportStatistics, useTickets } from "../hooks/useTickets";
 import { Badge } from "./ui/badge";
 
 const PRIORITY_META = [
-        { key: "urgent", label: "Urgent", description: "Perlu tindakan <24 jam", icon: Flame, accent: "text-red-600", gradient: "bg-gradient-to-br from-red-100 to-red-50" },
-        { key: "high", label: "Prioritas Tinggi", description: "Segera tindak lanjuti", icon: AlertTriangle, accent: "text-orange-600", gradient: "bg-gradient-to-br from-orange-100 to-orange-50" },
-        { key: "medium", label: "Prioritas Sedang", description: "Jadwalkan pemeriksaan", icon: ShieldCheck, accent: "text-amber-600", gradient: "bg-gradient-to-br from-amber-100 to-amber-50" },
-        { key: "low", label: "Prioritas Rendah", description: "Pantau secara berkala", icon: ShieldCheck, accent: "text-emerald-600", gradient: "bg-gradient-to-br from-emerald-100 to-emerald-50" },
+    { key: "urgent", label: "Urgent", description: "Perlu tindakan <24 jam", icon: Flame, accent: "text-red-600", indicator: "bg-red-100 text-red-600" },
+    { key: "high", label: "Prioritas Tinggi", description: "Segera tindak lanjuti", icon: AlertTriangle, accent: "text-orange-600", indicator: "bg-orange-100 text-orange-600" },
+    { key: "medium", label: "Prioritas Sedang", description: "Jadwalkan pemeriksaan", icon: ShieldCheck, accent: "text-amber-600", indicator: "bg-amber-100 text-amber-600" },
+    { key: "low", label: "Prioritas Rendah", description: "Pantau secara berkala", icon: ShieldCheck, accent: "text-emerald-600", indicator: "bg-emerald-100 text-emerald-600" },
 ];
 
 const PRIORITY_BADGES = {
@@ -50,7 +50,7 @@ export function PriorityTickets() {
                 const assignmentName = ticket.assignment?.assigned_to_user?.name || 'Belum ditugaskan';
 
                 return (
-                        <div key={ticket.id} className="border border-gray-100 rounded-xl p-4 hover:border-primary/40 transition">
+                        <div key={ticket.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:border-primary/40 transition">
                                 <div className="flex items-start justify-between gap-3">
                                         <div>
                                                 <p className="text-xs text-muted-foreground mb-1">{ticket.ticket_id}</p>
@@ -72,8 +72,8 @@ export function PriorityTickets() {
         const loadingLists = urgentLoading || highLoading;
 
         return (<div className="space-y-6">
-            <div>
-                <h2 className="text-[#1F2937]">Tiket Prioritas</h2>
+            <div className="white-card bg-white p-4 rounded-2xl shadow-sm">
+                <h2 className="text-foreground text-xl font-semibold">Tiket Prioritas</h2>
                 <p className="text-sm text-muted-foreground">Sorotan prioritas berdasarkan data backend</p>
             </div>
 
@@ -86,22 +86,30 @@ export function PriorityTickets() {
                     <div className="col-span-full text-sm text-red-600 bg-red-50 border border-red-100 rounded-2xl p-4">
                         Gagal memuat statistik prioritas
                     </div>
-                ) : prioritySummary.map((item) => (
-                    <div key={item.key} className={`rounded-2xl p-6 ${item.gradient} border border-white/60 shadow-sm`}>
-                        <div className="flex items-start justify-between">
-                            <div>
-                                <p className="text-sm text-muted-foreground">{item.label}</p>
-                                <p className="text-3xl text-foreground mt-1">{item.total}</p>
+                ) : prioritySummary.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                        <div key={item.key} className="white-card rounded-2xl p-6 shadow-lg bg-white">
+                            <div className="flex items-start justify-between gap-4">
+                                <div>
+                                    <p className="text-sm text-muted-foreground font-medium">{item.label}</p>
+                                    <p className="text-3xl text-foreground font-semibold mt-1">{item.total}</p>
+                                </div>
+                                <span className={`inline-flex h-12 w-12 items-center justify-center rounded-2xl ${item.indicator}`}>
+                                    <Icon className="h-5 w-5" />
+                                </span>
                             </div>
-                            <span className={`text-sm font-medium ${item.accent}`}>{item.percent}%</span>
+                            <div className="flex items-center justify-between mt-5">
+                                <p className="text-xs text-muted-foreground">{item.description}</p>
+                                <span className={`text-sm font-semibold ${item.accent}`}>{item.percent}%</span>
+                            </div>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-3">{item.description}</p>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+                <div className="white-card p-6 shadow-sm bg-white">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-foreground text-lg">Antrian Urgent</h3>
                         <span className="text-sm text-muted-foreground">{urgentTickets.length} tiket</span>
@@ -121,7 +129,7 @@ export function PriorityTickets() {
                     )}
                 </div>
 
-                <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+                <div className="white-card p-6 shadow-sm bg-white">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-foreground text-lg">Prioritas Tinggi</h3>
                         <span className="text-sm text-muted-foreground">{highTickets.length} tiket</span>

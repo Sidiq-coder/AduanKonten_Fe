@@ -82,8 +82,8 @@ export function TicketOverview() {
     
         return (<div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h2 className="text-foreground">Ringkasan Tiket</h2>
+                <div className="white-card bg-white px-6 py-5 rounded-2xl shadow-sm space-y-1">
+                    <h2 className="text-foreground text-lg font-semibold">Ringkasan Tiket</h2>
                     <p className="text-sm text-muted-foreground">Periode {currentRange.label.toLowerCase()}</p>
                 </div>
                 <Select value={timeRange} onValueChange={setTimeRange}>

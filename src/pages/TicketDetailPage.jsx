@@ -308,8 +308,9 @@ export function TicketDetailPage({ ticketId, onBack }) {
       })
     : "-";
   const reporterName = ticket.reporter_name || ticket.name || "-";
-  const reporterPhone = ticket.phone || ticket.reporter_contact || "-";
-  const reporterEmail = ticket.email || ticket.reporter_email || "-";
+  const reporterPhone = ticket.phone || ticket.reporter_contact || "";
+  const reporterEmail = ticket.email || ticket.reporter_email || "";
+  const reporterContact = reporterPhone || reporterEmail || "-";
   const reporterTypeLabel = ticket.reporter_type?.name || "-";
   const ticketLink = ticket.link_site || "-";
   const ticketNote = ticket.description || "-";
@@ -413,8 +414,8 @@ export function TicketDetailPage({ ticketId, onBack }) {
             Kembali
           </Button>
           <div>
-            <h1 className="text-[#2D3748] mb-1">Detail Tiket</h1>
-            <p className="text-sm text-[#6B7280]">Tiket ID: {ticket.ticket_id}</p>
+            <h1 className="text-white mb-1">Detail Tiket</h1>
+            <p className="text-sm text-white/80">Tiket ID: {ticket.ticket_id}</p>
           </div>
         </div>
         <Badge className={`${statusConfig[badgeKey]?.color || statusConfig.submitted.color} border px-4 py-2 rounded-xl`}>
@@ -464,7 +465,7 @@ export function TicketDetailPage({ ticketId, onBack }) {
                   <User size={16} />
                   Tipe Pelapor
                 </Label>
-                <p className="text-[#2D3748] bg-[#F9FAFB] px-4 py-3 rounded-xl">{ticket.reporter_type?.name || "-"}</p>
+                <p className="text-[#2D3748] bg-[#F9FAFB] px-4 py-3 rounded-xl">{reporterTypeLabel}</p>
               </div>
 
               <div className="space-y-2">
@@ -472,7 +473,7 @@ export function TicketDetailPage({ ticketId, onBack }) {
                   <User size={16} />
                   Nama Pelapor
                 </Label>
-                <p className="text-[#2D3748] bg-[#F9FAFB] px-4 py-3 rounded-xl">{ticket.reporter_name || "-"}</p>
+                <p className="text-[#2D3748] bg-[#F9FAFB] px-4 py-3 rounded-xl">{reporterName}</p>
               </div>
 
               <div className="space-y-2">
@@ -488,7 +489,7 @@ export function TicketDetailPage({ ticketId, onBack }) {
                   <Mail size={16} />
                   Kontak Pelapor
                 </Label>
-                <p className="text-[#2D3748] bg-[#F9FAFB] px-4 py-3 rounded-xl break-all">{ticket.reporter_contact || "-"}</p>
+                <p className="text-[#2D3748] bg-[#F9FAFB] px-4 py-3 rounded-xl break-all">{reporterContact}</p>
               </div>
             </div>
 

@@ -82,8 +82,8 @@ export function FakultasTicketOverview({ fakultasName }) {
     return (<div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-foreground">Ringkasan Tiket {fakultasName}</h2>
-          <p className="text-sm text-muted-foreground">Periode {currentRange.label.toLowerCase()}</p>
+          <h2 className="text-white text-2xl font-semibold">Ringkasan Tiket {fakultasName}</h2>
+          <p className="text-sm text-white/80">Periode {currentRange.label.toLowerCase()}</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 text-sm text-muted-foreground bg-card border border-border px-3 py-2 rounded-lg">
