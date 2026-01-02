@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { useAuditLogs, useAuditLogStatistics } from "../hooks/useAuditLogs";
@@ -21,7 +21,15 @@ const CHART_TYPES = [
     { value: "bar", label: "Grafik Batang" },
 ];
 
-const toDateInputValue = (date) => date.toISOString().split("T")[0];
+const toDateInputValue = (date) => {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+    return '';
+  }
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 const buildRangeParams = (days) => {
     const safeDays = Math.max(1, days);
@@ -133,7 +141,11 @@ export function RecentActivity() {
     const [actionFilter, setActionFilter] = useState("all");
 
     const currentRange = RANGE_OPTIONS[timeRange] ?? RANGE_OPTIONS["7days"];
-    const rangeParams = useMemo(() => buildRangeParams(currentRange.days), [currentRange.days]);
+    const [rangeParams, setRangeParams] = useState(() => buildRangeParams(currentRange.days));
+
+    useEffect(() => {
+      setRangeParams(buildRangeParams(currentRange.days));
+    }, [currentRange.days]);
 
     const { statistics, loading: statsLoading, error: statsError, fetchStatistics } = useAuditLogStatistics(rangeParams);
     const { logs, loading: logsLoading, error: logsError, fetchLogs } = useAuditLogs(1, 5);
@@ -173,8 +185,10 @@ export function RecentActivity() {
     };
 
     const handleRefresh = () => {
-        fetchStatistics();
-        fetchLogs();
+      const nextRange = buildRangeParams(currentRange.days);
+      setRangeParams(nextRange);
+      fetchStatistics(nextRange);
+      fetchLogs();
     };
 
     const chartIsEmpty = !statsLoading && chartData.length === 0;

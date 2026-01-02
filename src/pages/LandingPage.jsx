@@ -403,11 +403,18 @@ export function LandingPage({ onLoginAsAdmin }) {
                     </div>
 
                     <div className="flex items-center gap-3 pt-4">
-                      <Button onClick={() => setActiveTab("submit")} className="bg-white hover:bg-gray-100 text-[#003D82] px-6 h-12 rounded-xl shadow-2xl transition-all hover:scale-105">
+                      <Button
+                        onClick={() => setActiveTab("submit")}
+                        className="bg-white text-[#003D82] px-6 h-12 rounded-xl shadow-2xl transition-transform duration-200 hover:bg-gray-100 hover:scale-105 focus-visible:scale-105 active:bg-[#003D82] active:text-white active:scale-95"
+                      >
                         <Send size={20} className="mr-2"/>
                         <span className="text-base">Laporkan Sekarang</span>
                       </Button>
-                      <Button onClick={() => setActiveTab("check")} variant="outline" className="border-2 border-white text-white hover:bg-white hover:text-[#003D82] px-6 h-12 rounded-xl transition-all">
+                      <Button
+                        onClick={() => setActiveTab("check")}
+                        variant="outline"
+                        className="bg-white/80 text-[#003D82] border-2 border-white px-6 h-12 rounded-xl transition-transform duration-200 hover:bg-white hover:scale-105 focus-visible:scale-105 active:bg-[#003D82] active:text-white active:border-[#003D82] active:scale-95"
+                      >
                         <Search size={20} className="mr-2"/>
                         <span className="text-base">Cek Status</span>
                       </Button>
@@ -588,40 +595,11 @@ export function LandingPage({ onLoginAsAdmin }) {
                         <h4 className="text-base text-[#2D3748] mb-2">{item.title}</h4>
                         <p className="text-sm text-[#6B7280]">{item.desc}</p>
                       </div>
-                      {index < 3 && (<div className="hidden md:block absolute top-1/2 -right-3 transform -translate-y-1/2 z-10">
-                          <ArrowRight className="text-[#003D82]" size={24}/>
-                        </div>)}
                     </div>))}
                 </div>
               </div>
             </section>
 
-            {/* CTA Section */}
-            <section className="py-12 bg-gradient-to-r from-[#003D82] to-[#002855] relative overflow-hidden">
-              <div className="absolute inset-0 opacity-10">
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                  <UnilaLogo size={400}/>
-                </div>
-              </div>
-              
-              <div className="relative max-w-4xl mx-auto px-6 text-center">
-                <h2 className="text-3xl text-white mb-4">
-                  Siap Melaporkan?
-                </h2>
-                <p className="text-lg text-white/90 mb-6">
-                  Bersama kita jaga integritas dan reputasi Universitas Lampung
-                </p>
-                <div className="flex items-center justify-center gap-4">
-                  <Button onClick={() => setActiveTab("submit")} className="bg-white hover:bg-gray-100 text-[#003D82] px-8 h-12 rounded-xl shadow-2xl transition-all hover:scale-105">
-                    <Send size={20} className="mr-2"/>
-                    <span className="text-base">Kirim Laporan Sekarang</span>
-                  </Button>
-                  <Button onClick={() => setActiveTab("check")} variant="outline" className="border-2 border-white text-white hover:bg-white hover:text-[#003D82] px-6 h-12 rounded-xl">
-                    <span className="text-base">Atau Cek Status Tiket</span>
-                  </Button>
-                </div>
-              </div>
-            </section>
           </div>)}
 
         {activeTab === "submit" && (<section className="relative py-16" style={reportSectionBackgroundStyle}>
