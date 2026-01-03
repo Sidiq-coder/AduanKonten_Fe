@@ -338,24 +338,24 @@ export function LandingPage({ onLoginAsAdmin }) {
     return (<div className="min-h-screen bg-white">
       {/* Header */}
       <header className="bg-white border-b-2 border-[#003D82] sticky top-0 z-50 shadow-md">
-        <div className="max-w-7xl mx-auto px-6 py-3">
-          <div className="flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <UnilaLogo size={40}/>
               <div>
-                <h2 className="text-[#003D82] text-base">Sistem Aduan Konten</h2>
+                <h2 className="text-[#003D82] text-sm sm:text-base">Sistem Aduan Konten</h2>
                 <p className="text-xs text-[#2D3748]">Universitas Lampung</p>
               </div>
             </div>
             
-            <div className="flex items-center gap-2">
-              <Button onClick={() => setActiveTab("home")} variant="ghost" className={`rounded-lg h-9 px-4 transition-all text-sm ${activeTab === "home" ? "bg-[#003D82] text-white hover:bg-[#002E5B]" : "text-[#2D3748] hover:bg-gray-100"}`}>
+            <div className="flex items-center gap-2 flex-wrap justify-center">
+              <Button onClick={() => setActiveTab("home")} variant="ghost" className={`rounded-lg h-9 px-3 sm:px-4 transition-all text-xs sm:text-sm ${activeTab === "home" ? "bg-[#003D82] text-white hover:bg-[#002E5B]" : "text-[#2D3748] hover:bg-gray-100"}`}>
                 Beranda
               </Button>
-              <Button onClick={() => setActiveTab("submit")} variant="ghost" className={`rounded-lg h-9 px-4 transition-all text-sm ${activeTab === "submit" ? "bg-[#003D82] text-white hover:bg-[#002E5B]" : "text-[#2D3748] hover:bg-gray-100"}`}>
+              <Button onClick={() => setActiveTab("submit")} variant="ghost" className={`rounded-lg h-9 px-3 sm:px-4 transition-all text-xs sm:text-sm ${activeTab === "submit" ? "bg-[#003D82] text-white hover:bg-[#002E5B]" : "text-[#2D3748] hover:bg-gray-100"}`}>
                 Kirim Laporan
               </Button>
-              <Button onClick={() => setActiveTab("check")} variant="ghost" className={`rounded-lg h-9 px-4 transition-all text-sm ${activeTab === "check" ? "bg-[#003D82] text-white hover:bg-[#002E5B]" : "text-[#2D3748] hover:bg-gray-100"}`}>
+              <Button onClick={() => setActiveTab("check")} variant="ghost" className={`rounded-lg h-9 px-3 sm:px-4 transition-all text-xs sm:text-sm ${activeTab === "check" ? "bg-[#003D82] text-white hover:bg-[#002E5B]" : "text-[#2D3748] hover:bg-gray-100"}`}>
                 Cek Status
               </Button>
             </div>
