@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { useAuditLogs, useAuditLogStatistics } from "../hooks/useAuditLogs";
-import { Loader2, RefreshCcw, Clock, AlertCircle } from "lucide-react";
+import { Loader2, RefreshCcw, AlertCircle } from "lucide-react";
 
 const RANGE_OPTIONS = {
     "7days": { label: "7 Hari Terakhir", days: 7 },
@@ -100,39 +100,11 @@ const buildChartSeries = (activities, rangeParams, rangeDays) => {
     return results;
 };
 
-const formatRelativeTime = (value) => {
-    if (!value) {
-        return "-";
-    }
-    const formatter = new Intl.RelativeTimeFormat("id-ID", { numeric: "auto" });
-    const date = new Date(value);
-    const now = new Date();
-    let duration = Math.round((date.getTime() - now.getTime()) / 1000);
-    const divisions = [
-        { amount: 60, unit: "second" },
-        { amount: 60, unit: "minute" },
-        { amount: 24, unit: "hour" },
-        { amount: 7, unit: "day" },
-        { amount: 4.34524, unit: "week" },
-        { amount: 12, unit: "month" },
-        { amount: Number.POSITIVE_INFINITY, unit: "year" },
-    ];
-
-    for (const division of divisions) {
-        if (Math.abs(duration) < division.amount) {
-            return formatter.format(duration, division.unit);
-        }
-        duration /= division.amount;
-    }
-
-    return formatter.format(duration, "year");
-};
-
 const formatFullTimestamp = (value) => {
-    if (!value) {
-        return "";
-    }
-    return new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+  if (!value) {
+    return "";
+  }
+  return new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 };
 
 export function RecentActivity() {
@@ -318,10 +290,6 @@ export function RecentActivity() {
                   <div>
                     <p className="text-sm font-medium text-[#111827]">{log.action}</p>
                     <p className="text-xs text-[#6B7280]">{log.table_name || 'Tidak diketahui'} • #{log.record_id || '-'}</p>
-                  </div>
-                  <div className="flex items-center gap-1 text-xs text-[#6B7280]">
-                    <Clock size={14} />
-                    <span>{formatRelativeTime(log.created_at)}</span>
                   </div>
                 </div>
                 <div className="mt-3 text-xs text-[#6B7280] flex flex-wrap gap-3">

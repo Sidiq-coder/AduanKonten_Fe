@@ -49,6 +49,70 @@ const formatFileSize = (bytes) => {
   return `${(sizeInKB / 1024).toFixed(2)} MB`;
 };
 
+const copyToClipboard = async (value) => {
+  if (!value) {
+    return false;
+  }
+  try {
+    if (navigator?.clipboard?.writeText) {
+      await navigator.clipboard.writeText(value);
+      return true;
+    }
+  }
+  catch (_a) {
+    // ignore and fallback
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = value;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.top = "-9999px";
+  textarea.style.left = "-9999px";
+  document.body.appendChild(textarea);
+  textarea.select();
+  try {
+    return document.execCommand("copy");
+  }
+  catch (_b) {
+    return false;
+  }
+  finally {
+    document.body.removeChild(textarea);
+  }
+};
+
+const TicketCopyButton = ({ ticketId }) => {
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!copied) {
+      return undefined;
+    }
+    const timeoutId = setTimeout(() => setCopied(false), 1200);
+    return () => clearTimeout(timeoutId);
+  }, [copied]);
+
+  const handleCopy = async () => {
+    const success = await copyToClipboard(ticketId);
+    if (success) {
+      setCopied(true);
+    }
+  };
+
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      className={`h-8 transition-all duration-300 ${copied ? "copy-pulse" : ""}`}
+      onClick={handleCopy}
+    >
+      {copied ? "Disalin!" : "Salin"}
+    </Button>
+  );
+};
+
 // Mapping status sesuai backend (case-insensitive)
 const statusConfig = {
   diterima: { label: "Diterima", color: "bg-[#E0E7FF] text-[#4F46E5] border-[#C7D2FE]", icon: MessageSquare },
@@ -320,7 +384,12 @@ export function LandingPage({ onLoginAsAdmin }) {
             const result = await createTicket(submitData, true); // true for isPublic
             
             toast.success("Tiket berhasil dikirim!", {
-                description: `ID Tiket Anda: ${result.ticket_id}. Simpan ID ini untuk pelacakan.`,
+                description: (<div className="flex items-center gap-3">
+                  <span className="select-text">
+                    ID Tiket Anda: <span className="font-semibold">{result.ticket_id}</span>. Simpan ID ini untuk pelacakan.
+                  </span>
+                  <TicketCopyButton ticketId={result.ticket_id}/>
+                </div>),
                 icon: <CheckCircle2 size={20} className="text-[#16A34A]"/>,
                 duration: 8000,
             });
@@ -859,7 +928,7 @@ export function LandingPage({ onLoginAsAdmin }) {
                                     {isImage && (
                                       <img src={fileUrl} alt={attachment.filename || `Lampiran ${index + 1}`} className="w-20 h-14 object-cover rounded-lg border border-white/30 shadow-sm"/>
                                     )}
-                                    <Button asChild variant="outline" size="sm" className="rounded-lg border-white/40 text-white hover:bg-white/10 text-xs">
+                                    <Button asChild variant="outline" size="sm" className="rounded-lg border-white/40 bg-white/10 text-white hover:bg-white/20 text-xs">
                                       <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
                                         <Download size={16}/>
                                         Lihat / Unduh
