@@ -12,7 +12,6 @@ import {
   CheckCircle2,
   Loader2,
   Send,
-  ListChecks,
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { ConfirmModal } from "../components/ui/ConfirmModal";
@@ -110,6 +109,18 @@ export function TicketDetailPage({ ticketId, onBack }) {
       setSelectedPriority(ticket.priority || "medium");
     }
   }, [ticket?.priority, ticket]);
+
+  useEffect(() => {
+    if (selectedPriority !== "urgent") {
+      return;
+    }
+    const nextDay = new Date();
+    nextDay.setDate(nextDay.getDate() + 1);
+    const year = nextDay.getFullYear();
+    const month = String(nextDay.getMonth() + 1).padStart(2, "0");
+    const day = String(nextDay.getDate()).padStart(2, "0");
+    setAssignmentDueDate(`${year}-${month}-${day}`);
+  }, [selectedPriority]);
 
   const handleBackNavigation = () => {
     if (typeof onBack === "function") {
@@ -402,25 +413,27 @@ export function TicketDetailPage({ ticketId, onBack }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button
-            onClick={handleBackNavigation}
-            variant="outline"
-            size="sm"
-            className="rounded-xl border-gray-200 hover:bg-[#F8F9FE]"
-          >
-            <ArrowLeft size={16} className="mr-2" />
-            Kembali
-          </Button>
-          <div>
-            <h1 className="text-white mb-1">Detail Tiket</h1>
-            <p className="text-sm text-white/80">Tiket ID: {ticket.ticket_id}</p>
+      <div className="sticky top-0 z-50 isolate">
+        <div className="flex items-center justify-between bg-white text-[#111827] rounded-2xl px-4 py-3 shadow-lg border border-gray-200">
+          <div className="flex items-center gap-4">
+            <Button
+              onClick={handleBackNavigation}
+              variant="outline"
+              size="sm"
+              className="rounded-xl border-gray-200 text-[#111827] hover:bg-gray-100"
+            >
+              <ArrowLeft size={16} className="mr-2" />
+              Kembali
+            </Button>
+            <div>
+              <h1 className="text-[#111827] mb-1">Detail Tiket</h1>
+              <p className="text-sm text-[#4B5563]">Tiket ID: {ticket.ticket_id}</p>
+            </div>
           </div>
+          <Badge className={`${statusConfig[badgeKey]?.color || statusConfig.submitted.color} border px-4 py-2 rounded-xl`}>
+            {displayStatus}
+          </Badge>
         </div>
-        <Badge className={`${statusConfig[badgeKey]?.color || statusConfig.submitted.color} border px-4 py-2 rounded-xl`}>
-          {displayStatus}
-        </Badge>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -680,8 +693,14 @@ export function TicketDetailPage({ ticketId, onBack }) {
                     type="date"
                     value={assignmentDueDate}
                     onChange={(e) => setAssignmentDueDate(e.target.value)}
-                    className="bg-[#F9FAFB] border-gray-200 rounded-xl h-11"
+                    disabled={selectedPriority === "urgent"}
+                    className="bg-[#F9FAFB] border-gray-200 rounded-xl h-11 disabled:cursor-not-allowed disabled:opacity-60"
                   />
+                  {selectedPriority === "urgent" && (
+                    <p className="text-xs text-[#9CA3AF]">
+                      Untuk prioritas urgent, batas waktu otomatis 24 jam dan tidak bisa diubah.
+                    </p>
+                  )}
                 </div>
 
                 <Button
@@ -919,43 +938,6 @@ export function TicketDetailPage({ ticketId, onBack }) {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100/50 p-6">
-            <div className="flex items-center gap-3 mb-5">
-              <div className="w-10 h-10 bg-gradient-to-br from-[#E0F2FE] to-[#BAE6FD] rounded-xl flex items-center justify-center">
-                <ListChecks size={20} className="text-[#0284C7]" />
-              </div>
-              <h3 className="text-[#2D3748]">Log Aktivitas</h3>
-            </div>
-
-            {orderedActions.length > 0 ? (
-              <div className="space-y-3">
-                {orderedActions.map((action) => (
-                  <div key={action.id || action.created_at} className="border border-gray-100 rounded-xl p-4 bg-[#F9FAFB]">
-                    <div className="flex items-center justify-between gap-2 mb-1">
-                      <p className="text-sm text-[#1F2937] font-medium">{action.action_type || "Aktivitas"}</p>
-                      <span className="text-xs text-[#9CA3AF]">
-                        {action.created_at
-                          ? new Date(action.created_at).toLocaleString("id-ID", {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })
-                          : "-"}
-                      </span>
-                    </div>
-                    {action.notes && <p className="text-sm text-[#4B5563] whitespace-pre-line">{action.notes}</p>}
-                    <p className="text-xs text-[#6B7280] mt-1">oleh {action.user?.name || "Sistem"}</p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="bg-[#F9FAFB] border border-dashed border-gray-200 rounded-xl p-6 text-center">
-                <p className="text-sm text-[#6B7280]">Belum ada log aktivitas dari backend</p>
-              </div>
-            )}
-          </div>
         </div>
       </div>
     </div>

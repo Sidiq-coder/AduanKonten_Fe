@@ -2,6 +2,9 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocat
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { LandingPage } from "./pages/LandingPage";
+import { LandingHome } from "./pages/LandingHome";
+import { SubmitReportPage } from "./pages/SubmitReportPage";
+import { CheckTicketPage } from "./pages/CheckTicketPage";
 import { LoginPage } from "./pages/LoginPage";
 import { TicketsPage } from "./pages/TicketsPage";
 import { TicketDetailPage } from "./pages/TicketDetailPage";
@@ -129,7 +132,11 @@ export default function App() {
       <Router>
         <Routes>
           {/* Public routes */}
-          <Route path="/" element={<LandingPage />}/>
+          <Route path="/" element={<LandingPage />}>
+            <Route index element={<LandingHome />} />
+            <Route path="kirim-laporan" element={<SubmitReportPage />} />
+            <Route path="cek-status" element={<CheckTicketPage />} />
+          </Route>
           <Route path="/login" element={<LoginPage />}/>
 
           {/* Protected routes - Admin only */}

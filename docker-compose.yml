@@ -1,0 +1,5 @@
+services:
+  aduan-konten-fe:
+    build: .
+    ports:
+      - "5173:80"

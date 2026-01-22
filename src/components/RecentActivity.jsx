@@ -59,45 +59,62 @@ const getChartLabel = (date, useFullDate) => {
     return formatter.format(date);
 };
 
-const buildChartSeries = (activities, rangeParams, rangeDays) => {
-    if (!rangeParams) {
-        return [];
-    }
+const buildChartSeries = (activities, rangeParams, rangeDays, timeline) => {
+  if (!rangeParams) {
+    return [];
+  }
 
-    const startDate = new Date(rangeParams.date_from);
-    const endDate = new Date(rangeParams.date_to);
-    const buckets = new Map();
+  const startDate = new Date(rangeParams.date_from);
+  const endDate = new Date(rangeParams.date_to);
+  const buckets = new Map();
 
-    activities.forEach((activity) => {
-        if (!activity?.created_at) {
-            return;
-        }
-        const createdAt = new Date(activity.created_at);
-        const isoDate = toDateInputValue(createdAt);
-        const bucket = buckets.get(isoDate) || { total: 0, actions: {} };
-        bucket.total += 1;
-        const actionKey = normalizeActionKey(activity.action);
-        bucket.actions[actionKey] = (bucket.actions[actionKey] || 0) + 1;
-        buckets.set(isoDate, bucket);
-    });
-
-    const cursor = new Date(startDate);
-    const results = [];
-    const useFullDate = rangeDays > 14;
-
-    while (cursor <= endDate) {
-        const isoDate = toDateInputValue(cursor);
-        const bucket = buckets.get(isoDate) || { total: 0, actions: {} };
-        results.push({
-            date: isoDate,
-            name: getChartLabel(cursor, useFullDate),
-            total: bucket.total,
-            ...bucket.actions,
+  if (Array.isArray(timeline) && timeline.length > 0) {
+    timeline.forEach((entry) => {
+      if (!entry?.date) {
+        return;
+      }
+      const bucket = buckets.get(entry.date) || { total: 0, actions: {} };
+      bucket.total = Number.isFinite(entry.total) ? entry.total : bucket.total;
+      if (entry.actions && typeof entry.actions === "object") {
+        Object.entries(entry.actions).forEach(([action, count]) => {
+          const actionKey = normalizeActionKey(action);
+          bucket.actions[actionKey] = (bucket.actions[actionKey] || 0) + Number(count || 0);
         });
-        cursor.setDate(cursor.getDate() + 1);
-    }
+      }
+      buckets.set(entry.date, bucket);
+    });
+  } else {
+    activities.forEach((activity) => {
+      if (!activity?.created_at) {
+        return;
+      }
+      const createdAt = new Date(activity.created_at);
+      const isoDate = toDateInputValue(createdAt);
+      const bucket = buckets.get(isoDate) || { total: 0, actions: {} };
+      bucket.total += 1;
+      const actionKey = normalizeActionKey(activity.action);
+      bucket.actions[actionKey] = (bucket.actions[actionKey] || 0) + 1;
+      buckets.set(isoDate, bucket);
+    });
+  }
 
-    return results;
+  const cursor = new Date(startDate);
+  const results = [];
+  const useFullDate = rangeDays > 14;
+
+  while (cursor <= endDate) {
+    const isoDate = toDateInputValue(cursor);
+    const bucket = buckets.get(isoDate) || { total: 0, actions: {} };
+    results.push({
+      date: isoDate,
+      name: getChartLabel(cursor, useFullDate),
+      total: bucket.total,
+      ...bucket.actions,
+    });
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return results;
 };
 
 const formatFullTimestamp = (value) => {
@@ -138,7 +155,12 @@ export function RecentActivity() {
         return options;
     }, [statistics?.by_action]);
 
-    const chartData = useMemo(() => buildChartSeries(statistics?.recent_activities ?? [], rangeParams, currentRange.days), [statistics?.recent_activities, rangeParams, currentRange.days]);
+    const chartData = useMemo(() => buildChartSeries(
+      statistics?.recent_activities ?? [],
+      rangeParams,
+      currentRange.days,
+      statistics?.timeline ?? []
+    ), [statistics?.recent_activities, statistics?.timeline, rangeParams, currentRange.days]);
 
     const dataKey = actionFilter === "all" ? "total" : actionFilter;
     const strokeColor = actionColorMap[dataKey] ?? CHART_COLORS.palette[0];
