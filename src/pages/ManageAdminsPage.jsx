@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Pencil, Trash2, Loader2, ShieldCheck } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, ShieldCheck, Building2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
+import { Textarea } from "../components/ui/textarea";
 import { Badge } from "../components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Alert, AlertDescription } from "../components/ui/alert";
@@ -30,6 +31,11 @@ const initialFormState = {
     password: "",
 };
 
+const initialFacultyFormState = {
+  name: "",
+  description: "",
+};
+
 export function ManageAdminsPage() {
     const [roleFilter, setRoleFilter] = useState("admin_fakultas");
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -37,16 +43,27 @@ export function ManageAdminsPage() {
     const [formState, setFormState] = useState(initialFormState);
     const [editingUser, setEditingUser] = useState(null);
     const [deleteTarget, setDeleteTarget] = useState(null);
+  const [isFacultyFormOpen, setIsFacultyFormOpen] = useState(false);
+  const [facultyFormState, setFacultyFormState] = useState(initialFacultyFormState);
+  const [editingFaculty, setEditingFaculty] = useState(null);
+  const [isFacultySubmitting, setIsFacultySubmitting] = useState(false);
+  const [facultyDeleteTarget, setFacultyDeleteTarget] = useState(null);
 
     const filterParam = roleFilter === "all" ? undefined : roleFilter;
     const { users, loading, error, createUser, updateUser, deleteUser } = useUsers(filterParam);
-    const { faculties, loading: facultiesLoading } = useFaculties();
+  const { faculties, loading: facultiesLoading, error: facultiesError, createFaculty, updateFaculty, deleteFaculty } = useFaculties();
 
     useEffect(() => {
         if (error) {
             toast.error("Gagal memuat data admin", { description: error });
         }
     }, [error]);
+
+    useEffect(() => {
+      if (facultiesError) {
+        toast.error("Gagal memuat data fakultas", { description: facultiesError });
+      }
+    }, [facultiesError]);
 
     const filteredUsers = useMemo(() => users || [], [users]);
 
@@ -159,6 +176,93 @@ export function ManageAdminsPage() {
             setDeleteTarget(null);
         }
     };
+
+      const resetFacultyForm = () => {
+        setFacultyFormState(initialFacultyFormState);
+        setEditingFaculty(null);
+      };
+
+      const openCreateFacultyForm = () => {
+        resetFacultyForm();
+        setIsFacultyFormOpen(true);
+      };
+
+      const openEditFacultyForm = (faculty) => {
+        setEditingFaculty(faculty);
+        setFacultyFormState({
+          name: faculty.name || "",
+          description: faculty.description || "",
+        });
+        setIsFacultyFormOpen(true);
+      };
+
+      const closeFacultyForm = () => {
+        setIsFacultyFormOpen(false);
+        resetFacultyForm();
+      };
+
+      const handleFacultyFormChange = (field, value) => {
+        setFacultyFormState((prev) => ({ ...prev, [field]: value }));
+      };
+
+      const validateFacultyForm = () => {
+        if (!facultyFormState.name.trim()) {
+          toast.error("Nama fakultas wajib diisi");
+          return false;
+        }
+        return true;
+      };
+
+      const handleFacultySubmit = async () => {
+        if (!validateFacultyForm()) {
+          return;
+        }
+
+        setIsFacultySubmitting(true);
+        const normalizedDescription = facultyFormState.description?.trim();
+        const payload = {
+          name: facultyFormState.name.trim(),
+          description: normalizedDescription || null,
+        };
+
+        try {
+          if (editingFaculty) {
+            await updateFaculty(editingFaculty.id, payload);
+            toast.success("Fakultas berhasil diperbarui");
+          }
+          else {
+            await createFaculty(payload);
+            toast.success("Fakultas berhasil ditambahkan");
+          }
+          closeFacultyForm();
+        }
+        catch (facultyError) {
+          toast.error("Gagal menyimpan fakultas", {
+            description: handleApiError(facultyError),
+          });
+        }
+        finally {
+          setIsFacultySubmitting(false);
+        }
+      };
+
+      const handleConfirmFacultyDelete = async () => {
+        if (!facultyDeleteTarget) {
+          return;
+        }
+        try {
+          await deleteFaculty(facultyDeleteTarget.id);
+          toast.success("Fakultas berhasil dihapus");
+        }
+        catch (facultyDeleteError) {
+          toast.error("Gagal menghapus fakultas", {
+            description: handleApiError(facultyDeleteError),
+          });
+        }
+        finally {
+          setFacultyDeleteTarget(null);
+        }
+      };
 
     return (<div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -316,6 +420,98 @@ export function ManageAdminsPage() {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <CardTitle>Daftar Fakultas</CardTitle>
+            <CardDescription>Tambah, ubah, dan pantau fakultas yang terdaftar</CardDescription>
+          </div>
+          <Button onClick={openCreateFacultyForm} className="bg-[#003D82] hover:bg-[#002855]">
+            <Building2 size={16} />
+            Tambah Fakultas
+          </Button>
+        </CardHeader>
+        {isFacultyFormOpen && (
+          <CardContent className="space-y-4 border-t pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="faculty-name">Nama Fakultas</Label>
+                <Input id="faculty-name" placeholder="Contoh: Fakultas Teknik" value={facultyFormState.name} onChange={(e) => handleFacultyFormChange("name", e.target.value)} />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="faculty-description">Deskripsi</Label>
+                <Textarea id="faculty-description" rows={3} placeholder="Tuliskan catatan singkat atau singkatan fakultas" value={facultyFormState.description} onChange={(e) => handleFacultyFormChange("description", e.target.value)} />
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button onClick={handleFacultySubmit} disabled={isFacultySubmitting} className="bg-[#003D82] hover:bg-[#002855]">
+                {isFacultySubmitting ? <Loader2 className="animate-spin" size={18} /> : <ShieldCheck size={18} />}
+                {editingFaculty ? "Simpan Perubahan" : "Simpan"}
+              </Button>
+              <Button variant="ghost" onClick={closeFacultyForm} disabled={isFacultySubmitting}>
+                Batal
+              </Button>
+            </div>
+          </CardContent>
+        )}
+        <CardContent>
+          {facultiesLoading ? (
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+              <Loader2 className="animate-spin mb-3" size={32} />
+              Memuat data fakultas...
+            </div>
+          ) : faculties.length === 0 ? (
+            <div className="py-12 text-center text-muted-foreground">
+              Belum ada fakultas terdaftar
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground border-b">
+                    <th className="py-3">Nama</th>
+                    <th className="py-3">Deskripsi</th>
+                    <th className="py-3">Admin Aktif</th>
+                    <th className="py-3">Total Tiket</th>
+                    <th className="py-3 text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {faculties.map((faculty) => {
+                    const adminCount = faculty.users_count ?? faculty.users?.length ?? 0;
+                    const assignmentCount = faculty.assignments_count ?? faculty.assignments?.length ?? 0;
+                    return (
+                      <tr key={faculty.id} className="border-b last:border-0">
+                        <td className="py-3">
+                          <div className="font-medium text-foreground">{faculty.name}</div>
+                        </td>
+                        <td className="py-3">
+                          <p className="text-sm text-muted-foreground">{faculty.description || "Belum ada deskripsi"}</p>
+                        </td>
+                        <td className="py-3 text-sm text-muted-foreground">{adminCount}</td>
+                        <td className="py-3 text-sm text-muted-foreground">{assignmentCount}</td>
+                        <td className="py-3">
+                          <div className="flex justify-end gap-2">
+                            <Button variant="outline" size="sm" onClick={() => openEditFacultyForm(faculty)}>
+                              <Pencil size={16} />
+                              Edit
+                            </Button>
+                            <Button variant="destructive" size="sm" onClick={() => setFacultyDeleteTarget(faculty)}>
+                              <Trash2 size={16} />
+                              Hapus
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <Alert>
         <AlertDescription className="text-sm">
           Untuk alasan keamanan, hanya super admin yang dapat mengelola akun admin.
@@ -337,6 +533,27 @@ export function ManageAdminsPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Batal</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmDelete} className="bg-red-600 hover:bg-red-700">
+              Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!facultyDeleteTarget} onOpenChange={(open) => {
+            if (!open) {
+                setFacultyDeleteTarget(null);
+            }
+        }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus fakultas?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Fakultas "{facultyDeleteTarget?.name}" akan dihapus.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmFacultyDelete} className="bg-red-600 hover:bg-red-700">
               Hapus
             </AlertDialogAction>
           </AlertDialogFooter>
