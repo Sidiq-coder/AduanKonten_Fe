@@ -47,6 +47,7 @@ export function LoginPage() {
               super_admin: '/admin',
               admin: '/admin',
               admin_fakultas: '/fakultas',
+              admin_unit: '/fakultas',
               fakultas: '/fakultas',
             };
             const destination = roleDestinations[user.role] || '/tickets';

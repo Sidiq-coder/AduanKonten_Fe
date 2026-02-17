@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Filter, Eye, Loader2 } from "lucide-react";
 import { Input } from "../components/ui/input";
@@ -15,11 +15,12 @@ export function FakultasTicketsPage({ onViewTicket, fakultasName }) {
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
     const [categoryFilter, setCategoryFilter] = useState("all");
-    const facultyDisplayName = fakultasName || user?.faculty?.name || "Fakultas";
+    const facultyDisplayName = fakultasName || user?.unit?.name || user?.faculty?.name || "Fakultas";
     
     const statusApiMap = {
       submitted: "Diterima",
       in_progress: "Diproses",
+      pending_validation: "Menunggu Validasi",
       resolved: "Selesai",
       rejected: "Ditolak",
     };
@@ -44,6 +45,7 @@ export function FakultasTicketsPage({ onViewTicket, fakultasName }) {
     const statusConfig = {
       submitted: { label: "Terkirim", color: "bg-[#BBDEFB] text-[#003D82] border-[#90CAF9]" },
       in_progress: { label: "Sedang Diproses", color: "bg-[#FFE082] text-[#F57C00] border-[#FFD54F]" },
+      pending_validation: { label: "Menunggu Validasi", color: "bg-[#FFE082] text-[#F57C00] border-[#FFD54F]" },
       resolved: { label: "Selesai", color: "bg-[#C8E6C9] text-[#388E3C] border-[#A5D6A7]" },
       rejected: { label: "Ditolak", color: "bg-[#FFCDD2] text-[#C62828] border-[#EF9A9A]" },
     };
@@ -70,6 +72,9 @@ export function FakultasTicketsPage({ onViewTicket, fakultasName }) {
       if (!Array.isArray(ticket.actions) || ticket.actions.length === 0)
         return null;
       const latestAction = ticket.actions[0];
+      if (latestAction?.action_type === "Ditolak" && ticket?.report_status !== "Ditolak") {
+        return null;
+      }
       return mapActionStatusKey(latestAction?.action_type);
     };
 
@@ -81,10 +86,35 @@ export function FakultasTicketsPage({ onViewTicket, fakultasName }) {
       let statusKey = ticket.status;
       if (ticket.report_status === 'Selesai') statusKey = 'resolved';
       else if (ticket.report_status === 'Ditolak') statusKey = 'rejected';
+      else if (ticket.report_status === 'Menunggu Validasi') statusKey = 'pending_validation';
       else if (ticket.report_status === 'Diproses' || ticket.assignment) statusKey = 'in_progress';
       else statusKey = 'submitted';
       return statusConfig[statusKey] || statusConfig.submitted;
     };
+
+    const getAssignmentTimestamp = (ticket) => {
+      if (!ticket)
+        return null;
+      const assignment = Array.isArray(ticket.assignment) ? ticket.assignment[0] : ticket.assignment;
+      return (
+        assignment?.assigned_at ||
+        assignment?.assignedAt ||
+        assignment?.created_at ||
+        assignment?.createdAt ||
+        ticket.assigned_at ||
+        ticket.assignedAt ||
+        null
+      );
+    };
+
+    const sortedTickets = useMemo(() => {
+      const list = Array.isArray(tickets) ? [...tickets] : [];
+      return list.sort((a, b) => {
+        const timeA = new Date(getAssignmentTimestamp(a) || a?.created_at || 0).getTime();
+        const timeB = new Date(getAssignmentTimestamp(b) || b?.created_at || 0).getTime();
+        return timeB - timeA;
+      });
+    }, [tickets]);
 
     return (<div>
       <div className="mb-8">
@@ -109,6 +139,7 @@ export function FakultasTicketsPage({ onViewTicket, fakultasName }) {
               <SelectItem value="all">Semua Status</SelectItem>
               <SelectItem value="submitted">Terkirim</SelectItem>
               <SelectItem value="in_progress">Sedang Diproses</SelectItem>
+              <SelectItem value="pending_validation">Menunggu Validasi</SelectItem>
               <SelectItem value="resolved">Selesai</SelectItem>
               <SelectItem value="rejected">Ditolak</SelectItem>
             </SelectContent>
@@ -139,7 +170,7 @@ export function FakultasTicketsPage({ onViewTicket, fakultasName }) {
                 <th className="text-left py-4 px-6 text-sm text-foreground">Kategori</th>
                 <th className="text-left py-4 px-6 text-sm text-foreground">Status</th>
                 <th className="text-left py-4 px-6 text-sm text-foreground">Prioritas</th>
-                <th className="text-left py-4 px-6 text-sm text-foreground">Tanggal</th>
+                <th className="text-left py-4 px-6 text-sm text-foreground">Tanggal Penugasan</th>
                 <th className="text-left py-4 px-6 text-sm text-foreground">Aksi</th>
               </tr>
             </thead>
@@ -151,8 +182,8 @@ export function FakultasTicketsPage({ onViewTicket, fakultasName }) {
                     <p className="text-muted-foreground">Memuat data...</p>
                   </td>
                 </tr>
-              ) : tickets && tickets.length > 0 ? (
-                tickets.map((ticket) => (<tr key={ticket.id} className="border-b border-border hover:bg-muted/20 transition-colors">
+              ) : sortedTickets && sortedTickets.length > 0 ? (
+                sortedTickets.map((ticket) => (<tr key={ticket.id} className="border-b border-border hover:bg-muted/20 transition-colors">
                   <td className="py-4 px-6">
                     <span className="text-sm text-foreground">{ticket.ticket_id}</span>
                   </td>
@@ -176,7 +207,7 @@ export function FakultasTicketsPage({ onViewTicket, fakultasName }) {
                   </td>
                   <td className="py-4 px-6">
                     <span className="text-sm text-muted-foreground">
-                      {new Date(ticket.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      {new Date(getAssignmentTimestamp(ticket) || ticket.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </span>
                   </td>
                   <td className="py-4 px-6">

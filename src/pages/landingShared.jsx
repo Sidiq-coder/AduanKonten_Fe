@@ -15,6 +15,7 @@ export const TIMELINE_TONE_STYLES = {
 export const statusConfig = {
   diterima: { label: "Diterima", color: "bg-[#E0E7FF] text-[#4F46E5] border-[#C7D2FE]", icon: "message" },
   diproses: { label: "Sedang Diproses", color: "bg-[#FFE8D9] text-[#EA580C] border-[#FFD4A5]", icon: "clock" },
+  "menunggu validasi": { label: "Menunggu Validasi", color: "bg-[#FFE8D9] text-[#EA580C] border-[#FFD4A5]", icon: "clock" },
   selesai: { label: "Selesai", color: "bg-[#D4F4E2] text-[#16A34A] border-[#A5E8C8]", icon: "check" },
   ditolak: { label: "Ditolak", color: "bg-[#FEE2E2] text-[#DC2626] border-[#FCA5A5]", icon: "alert" },
 };

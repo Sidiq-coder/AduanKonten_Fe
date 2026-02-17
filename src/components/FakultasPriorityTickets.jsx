@@ -12,6 +12,7 @@ const PRIORITY_BADGES = {
 const STATUS_PROGRESS = {
     Diterima: 20,
     Diproses: 60,
+  "Menunggu Validasi": 80,
     Selesai: 100,
     Ditolak: 100,
 };

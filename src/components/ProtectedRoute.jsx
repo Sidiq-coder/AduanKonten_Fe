@@ -24,6 +24,7 @@ export const ProtectedRoute = ({ children, allowedRoles }) => {
                 super_admin: '/admin',
                 admin: '/admin',
                 admin_fakultas: '/fakultas',
+                admin_unit: '/fakultas',
                 fakultas: '/fakultas',
             };
             const fallback = roleRedirects[user?.role] || '/';

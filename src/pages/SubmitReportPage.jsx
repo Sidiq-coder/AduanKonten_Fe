@@ -96,13 +96,6 @@ export function SubmitReportPage() {
       toast.error("Catatan wajib diisi", { icon: <AlertCircle size={20} className="text-[#F472B6]" /> });
       return;
     }
-    if (!formData.file) {
-      toast.error("Lampiran wajib diupload", {
-        description: "Pastikan file berupa gambar (JPEG/PNG) dan ukuran maksimal 2 MB",
-        icon: <AlertCircle size={20} className="text-[#F472B6]" />,
-      });
-      return;
-    }
 
     setIsSubmitting(true);
     try {
@@ -147,7 +140,7 @@ export function SubmitReportPage() {
       <div className="absolute inset-0 bg-[#020617]/30" aria-hidden="true" />
       <div className="relative max-w-3xl mx-auto px-6">
         <div className="text-center mb-8">
-          <h1 className="text-3xl text-white mb-3">Kirim Laporan Baru</h1>
+          <h1 className="text-3xl text-white mb-3">Kirim Aduan Baru</h1>
           <p className="text-base text-white/80">Isi formulir di bawah untuk mengajukan laporan konten bermasalah</p>
         </div>
 
@@ -314,7 +307,7 @@ export function SubmitReportPage() {
 
             <div className="space-y-1.5">
               <Label htmlFor="file" className="text-sm">
-                Lampiran <span className="text-[#F472B6]">*</span>
+                Lampiran
               </Label>
               <div className="space-y-2">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -345,7 +338,7 @@ export function SubmitReportPage() {
                 className="flex-1 bg-gradient-to-r from-[#003D82] to-[#002855] hover:from-[#002855] hover:to-[#001a3d] text-white rounded-lg h-10 shadow-lg text-sm"
               >
                 <Send size={16} className="mr-2" />
-                {isSubmitting ? "Mengirim..." : "Kirim Laporan"}
+                {isSubmitting ? "Mengirim..." : "Kirim Aduan"}
               </Button>
             </div>
           </form>

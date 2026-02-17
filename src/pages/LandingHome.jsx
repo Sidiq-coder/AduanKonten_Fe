@@ -200,7 +200,7 @@ export function LandingHome() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {[
               { step: "01", title: "Isi Formulir", desc: "Lengkapi data diri dan detail laporan dengan akurat", icon: FileText, color: "from-[#003D82] to-[#002E5B]" },
-              { step: "02", title: "Kirim Laporan", desc: "Submit formulir dan dapatkan ID tiket untuk pelacakan", icon: Send, color: "from-[#003D82] to-[#002E5B]" },
+              { step: "02", title: "Kirim Aduan", desc: "Submit formulir dan dapatkan ID tiket untuk pelacakan", icon: Send, color: "from-[#003D82] to-[#002E5B]" },
               { step: "03", title: "Verifikasi Tim", desc: "Laporan diverifikasi oleh tim fakultas terkait", icon: Users, color: "from-[#003D82] to-[#002E5B]" },
               { step: "04", title: "Selesai", desc: "Dapatkan notifikasi hasil dan tindak lanjut", icon: CheckCircle2, color: "from-[#003D82] to-[#002E5B]" },
             ].map((item, index) => (

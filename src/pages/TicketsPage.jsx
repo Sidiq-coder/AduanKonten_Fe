@@ -8,10 +8,13 @@ import { Button } from "../components/ui/button";
 import { useTickets } from "../hooks/useTickets";
 import { useFaculties } from "../hooks/useMasterData";
 import { toast } from "sonner@2.0.3";
+import apiClient from "../lib/api";
 
 const statusConfig = {
     resolved: { label: "Selesai", color: "bg-[#D4F4E2] text-[#16A34A] border-[#A5E8C8]" },
     in_progress: { label: "Sedang Diproses", color: "bg-[#FFE8D9] text-[#EA580C] border-[#FFD4A5]" },
+  pending_validation: { label: "Menunggu Validasi", color: "bg-[#FFE8D9] text-[#EA580C] border-[#FFD4A5]" },
+    returned: { label: "Dikembalikan", color: "bg-[#FFE8D9] text-[#EA580C] border-[#FFD4A5]" },
     submitted: { label: "Terkirim", color: "bg-[#E0E7FF] text-[#4F46E5] border-[#C7D2FE]" },
     rejected: { label: "Ditolak", color: "bg-[#FFCDD2] text-[#C62828] border-[#EF9A9A]" },
 };
@@ -27,7 +30,7 @@ export function TicketsPage({ onViewTicket }) {
         search: searchQuery || undefined,
         status: statusFilter !== "all" ? statusFilter : undefined,
         priority: priorityFilter !== "all" ? priorityFilter : undefined,
-        assigned_faculty_id: facultyFilter !== "all" && facultyFilter !== "unassigned" ? facultyFilter : undefined,
+        assigned_unit_id: facultyFilter !== "all" && facultyFilter !== "unassigned" ? facultyFilter : undefined,
         assignment_state: facultyFilter === "unassigned" ? "unassigned" : undefined,
         page: currentPage,
         per_page: 10,
@@ -35,6 +38,8 @@ export function TicketsPage({ onViewTicket }) {
     
     const { tickets, loading, error, pagination } = useTickets(filters);
     const { faculties } = useFaculties();
+
+    const [ticketActionMeta, setTicketActionMeta] = useState({});
     
     useEffect(() => {
         if (error) {
@@ -43,6 +48,73 @@ export function TicketsPage({ onViewTicket }) {
             });
         }
     }, [error]);
+
+    useEffect(() => {
+      let isCancelled = false;
+
+      const loadActionsForVisibleTickets = async () => {
+        const list = Array.isArray(tickets) ? tickets : [];
+        const candidateTickets = list.filter((ticket) => {
+          if (!ticket?.id) return false;
+          if (ticket.report_status === "Selesai" || ticket.report_status === "Ditolak") return false;
+          if (ticket.report_status === "Menunggu Validasi") return false;
+          return !ticket.assignment;
+        });
+
+        if (candidateTickets.length === 0) {
+          return;
+        }
+
+        try {
+          const results = await Promise.all(
+            candidateTickets.map(async (ticket) => {
+              try {
+                const response = await apiClient.get(`/reports/${ticket.id}/actions`);
+                const actions = Array.isArray(response.data?.data) ? response.data.data : [];
+                const latest = actions[0] || null;
+                const latestReject = actions.find(
+                  (action) => action?.action_type === "Ditolak" && typeof action?.notes === "string" && action.notes.trim().length > 0
+                );
+                return {
+                  reportId: ticket.id,
+                  latestActionType: latest?.action_type || "",
+                  latestRejectNote: latestReject?.notes?.trim() || "",
+                  latestRejectActorName: latestReject?.user?.name || latest?.user?.name || "",
+                };
+              } catch {
+                return {
+                  reportId: ticket.id,
+                  latestActionType: "",
+                  latestRejectNote: "",
+                  latestRejectActorName: "",
+                };
+              }
+            })
+          );
+
+          if (isCancelled) return;
+          setTicketActionMeta((prev) => {
+            const next = { ...prev };
+            results.forEach((entry) => {
+              if (!entry?.reportId) return;
+              next[entry.reportId] = {
+                latestActionType: entry.latestActionType,
+                latestRejectNote: entry.latestRejectNote,
+                latestRejectActorName: entry.latestRejectActorName,
+              };
+            });
+            return next;
+          });
+        } catch {
+          // ignore; list still renders without action meta
+        }
+      };
+
+      loadActionsForVisibleTickets();
+      return () => {
+        isCancelled = true;
+      };
+    }, [tickets]);
     return (<div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -74,6 +146,7 @@ export function TicketsPage({ onViewTicket }) {
             <SelectContent className="rounded-xl">
               <SelectItem value="all">Semua Status</SelectItem>
               <SelectItem value="Selesai">Selesai</SelectItem>
+              <SelectItem value="Menunggu Validasi">Menunggu Validasi</SelectItem>
               <SelectItem value="Diproses">Sedang Diproses</SelectItem>
               <SelectItem value="Diterima">Terkirim</SelectItem>
               <SelectItem value="Ditolak">Ditolak</SelectItem>
@@ -139,18 +212,29 @@ export function TicketsPage({ onViewTicket }) {
                     <span className="text-sm text-[#6B7280]">{ticket.reporter_type?.name || '-'}</span>
                   </td>
                   <td className="px-6 py-4">
-                    {ticket.report_status === "Selesai" || ticket.report_status === "Ditolak" ? (
-                      <span className="text-sm text-[#6B7280]">-</span>
-                    ) : ticket.assignment ? (
+                    {ticket.assignment ? (
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 bg-gradient-to-br from-[#DBEAFE] to-[#BFDBFE] rounded-lg flex items-center justify-center">
                           <span className="text-xs text-[#2563EB]">
-                            {ticket.assignment.faculty?.code || ticket.assignment.assigned_to_user?.name?.slice(0, 2)?.toUpperCase() || "AD"}
+                            {ticket.assignment.unit?.code ||
+                              ticket.assignment.faculty?.code ||
+                              ticket.assignment.assigned_to_user?.name?.slice(0, 2)?.toUpperCase() ||
+                              "AD"}
                           </span>
                         </div>
                         <div className="flex flex-col">
-                          <span className="text-sm text-[#2D3748]">{ticket.assignment.assigned_to_user?.name || "Admin Fakultas"}</span>
-                          <span className="text-xs text-[#9CA3AF]">{ticket.assignment.faculty?.name || "-"}</span>
+                          <span className="text-sm text-[#2D3748]">{ticket.assignment.assigned_to_user?.name || "Admin Unit"}</span>
+                          <span className="text-xs text-[#9CA3AF]">{ticket.assignment.unit?.name || ticket.assignment.faculty?.name || "-"}</span>
+                        </div>
+                      </div>
+                    ) : ticket.report_status === "Selesai" || ticket.report_status === "Ditolak" ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 bg-gradient-to-br from-[#DBEAFE] to-[#BFDBFE] rounded-lg flex items-center justify-center">
+                          <span className="text-xs text-[#2563EB]">SA</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-sm text-[#2D3748]">Super Admin</span>
+                          <span className="text-xs text-[#9CA3AF]">-</span>
                         </div>
                       </div>
                     ) : (
@@ -162,13 +246,61 @@ export function TicketsPage({ onViewTicket }) {
                       let statusKey = ticket.status || 'submitted';
                       if (ticket.report_status === 'Selesai') statusKey = 'resolved';
                       else if (ticket.report_status === 'Ditolak') statusKey = 'rejected';
+                      else if (ticket.report_status === 'Menunggu Validasi') statusKey = 'pending_validation';
                       else if (ticket.report_status === 'Diproses' || ticket.assignment) statusKey = 'in_progress';
                       else if (ticket.report_status === 'Diterima') statusKey = 'submitted';
+
+                      const actions = Array.isArray(ticket.actions) ? [...ticket.actions] : [];
+                      actions.sort((a, b) => {
+                        const timeA = a?.created_at ? new Date(a.created_at).getTime() : 0;
+                        const timeB = b?.created_at ? new Date(b.created_at).getTime() : 0;
+                        return timeB - timeA;
+                      });
+                      const listLatestRejectAction = actions.find(
+                        (action) => action?.action_type === "Ditolak" && typeof action?.notes === "string" && action.notes.trim().length > 0
+                      );
+
+                      const fetchedMeta = ticketActionMeta?.[ticket.id];
+                      const latestActionType = fetchedMeta?.latestActionType || actions[0]?.action_type || "";
+                      const latestRejectNote = fetchedMeta?.latestRejectNote || listLatestRejectAction?.notes || "";
+                      const latestRejectActorName =
+                        fetchedMeta?.latestRejectActorName ||
+                        listLatestRejectAction?.user?.name ||
+                        actions[0]?.user?.name ||
+                        "";
+
+                      const isReturnedByAdmin =
+                        !ticket.assignment &&
+                        ticket.report_status !== "Ditolak" &&
+                        ticket.report_status !== "Selesai" &&
+                        ticket.report_status !== "Menunggu Validasi" &&
+                        latestActionType === "Ditolak";
+                      if (isReturnedByAdmin) {
+                        statusKey = "returned";
+                      }
+
+                      const rejectReasonLabel =
+                        ticket.report_status === "Ditolak"
+                          ? (ticket.rejection_reason || latestRejectNote || "")
+                          : (latestRejectNote || "");
+                      const shouldShowRejectReason = typeof rejectReasonLabel === "string" && rejectReasonLabel.trim().length > 0;
                       
                       return (
-                        <Badge className={`${statusConfig[statusKey]?.color || statusConfig.submitted.color} border px-3 py-1 text-xs rounded-lg`}>
-                          {statusConfig[statusKey]?.label || ticket.report_status || 'Terkirim'}
-                        </Badge>
+                        <div>
+                          <Badge className={`${statusConfig[statusKey]?.color || statusConfig.submitted.color} border px-3 py-1 text-xs rounded-lg`}>
+                            {statusConfig[statusKey]?.label || ticket.report_status || 'Terkirim'}
+                          </Badge>
+                          {isReturnedByAdmin && latestRejectActorName && (
+                            <p className="text-xs text-[#6B7280] mt-1 max-w-[260px] whitespace-normal break-words leading-snug">
+                              Dikembalikan oleh: {latestRejectActorName}
+                            </p>
+                          )}
+                          {shouldShowRejectReason && (
+                            <p className="text-xs text-[#6B7280] mt-1 max-w-[260px] whitespace-normal break-words leading-snug">
+                              Alasan: {rejectReasonLabel}
+                            </p>
+                          )}
+                        </div>
                       );
                     })()}
                   </td>

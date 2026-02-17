@@ -11,10 +11,10 @@ import { Alert, AlertDescription } from "../components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../components/ui/alert-dialog";
 import { useUsers, useFaculties } from "../hooks/useMasterData";
 import { toast } from "sonner@2.0.3";
-import { handleApiError } from "../lib/api";
+import apiClient, { handleApiError } from "../lib/api";
 
 const ROLE_OPTIONS = [
-    { value: "admin_fakultas", label: "Admin Fakultas" },
+  { value: "admin_unit", label: "Admin Unit" },
     { value: "super_admin", label: "Super Admin" },
 ];
 
@@ -26,7 +26,7 @@ const roleLabel = (role) => {
 const initialFormState = {
     name: "",
     email: "",
-    role: "admin_fakultas",
+  role: "admin_unit",
     faculty_id: "",
     password: "",
 };
@@ -37,7 +37,7 @@ const initialFacultyFormState = {
 };
 
 export function ManageAdminsPage() {
-    const [roleFilter, setRoleFilter] = useState("admin_fakultas");
+  const [roleFilter, setRoleFilter] = useState("admin_unit");
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formState, setFormState] = useState(initialFormState);
@@ -48,6 +48,7 @@ export function ManageAdminsPage() {
   const [editingFaculty, setEditingFaculty] = useState(null);
   const [isFacultySubmitting, setIsFacultySubmitting] = useState(false);
   const [facultyDeleteTarget, setFacultyDeleteTarget] = useState(null);
+  const [facultyTicketCounts, setFacultyTicketCounts] = useState({});
 
     const filterParam = roleFilter === "all" ? undefined : roleFilter;
     const { users, loading, error, createUser, updateUser, deleteUser } = useUsers(filterParam);
@@ -61,9 +62,74 @@ export function ManageAdminsPage() {
 
     useEffect(() => {
       if (facultiesError) {
-        toast.error("Gagal memuat data fakultas", { description: facultiesError });
+        toast.error("Gagal memuat data unit", { description: facultiesError });
       }
     }, [facultiesError]);
+
+    useEffect(() => {
+      let isCancelled = false;
+
+      const fetchTicketTotalByStatus = async (unitId, status) => {
+        if (!unitId) return 0;
+        try {
+          const response = await apiClient.get("/reports", {
+            params: {
+              assigned_unit_id: unitId,
+              status,
+              per_page: 1,
+              page: 1,
+            },
+          });
+          const payload = response.data?.data;
+          return Number(payload?.total || 0);
+        } catch {
+          return 0;
+        }
+      };
+
+      const loadCounts = async () => {
+        const list = Array.isArray(faculties) ? faculties : [];
+        if (facultiesLoading || list.length === 0) {
+          return;
+        }
+
+        try {
+          const results = await Promise.all(
+            list
+              .filter(Boolean)
+              .map(async (faculty) => {
+                const unitId = faculty?.id;
+                if (!unitId) return null;
+                const [pendingValidation, resolved] = await Promise.all([
+                  fetchTicketTotalByStatus(unitId, "Menunggu Validasi"),
+                  fetchTicketTotalByStatus(unitId, "Selesai"),
+                ]);
+                return { unitId, pendingValidation, resolved };
+              })
+          );
+
+          if (isCancelled) return;
+          setFacultyTicketCounts((prev) => {
+            const next = { ...prev };
+            results.forEach((row) => {
+              if (!row?.unitId) return;
+              next[row.unitId] = {
+                pendingValidation: row.pendingValidation,
+                resolved: row.resolved,
+              };
+            });
+            return next;
+          });
+        } catch {
+          // ignore
+        }
+      };
+
+      loadCounts();
+      return () => {
+        isCancelled = true;
+      };
+    }, [facultiesLoading, faculties]);
 
     const filteredUsers = useMemo(() => users || [], [users]);
 
@@ -82,8 +148,8 @@ export function ManageAdminsPage() {
         setFormState({
             name: user.name || "",
             email: user.email || "",
-            role: user.role || "admin_fakultas",
-            faculty_id: user.faculty_id || "",
+        role: user.role || "admin_unit",
+        faculty_id: user.unit_id || user.faculty_id || "",
             password: "",
         });
         setIsFormOpen(true);
@@ -114,8 +180,8 @@ export function ManageAdminsPage() {
             return false;
         }
 
-        if (formState.role === "admin_fakultas" && !formState.faculty_id) {
-            toast.error("Pilih fakultas untuk admin fakultas");
+        if ((formState.role === "admin_unit" || formState.role === "admin_fakultas") && !formState.faculty_id) {
+            toast.error("Pilih unit untuk admin unit");
             return false;
         }
 
@@ -132,7 +198,7 @@ export function ManageAdminsPage() {
             name: formState.name.trim(),
             email: formState.email.trim(),
             role: formState.role,
-            faculty_id: formState.role === "admin_fakultas" ? formState.faculty_id : null,
+          unit_id: (formState.role === "admin_unit" || formState.role === "admin_fakultas") ? formState.faculty_id : null,
         };
         if (formState.password) {
             payload.password = formState.password;
@@ -207,7 +273,7 @@ export function ManageAdminsPage() {
 
       const validateFacultyForm = () => {
         if (!facultyFormState.name.trim()) {
-          toast.error("Nama fakultas wajib diisi");
+          toast.error("Nama unit wajib diisi");
           return false;
         }
         return true;
@@ -228,16 +294,16 @@ export function ManageAdminsPage() {
         try {
           if (editingFaculty) {
             await updateFaculty(editingFaculty.id, payload);
-            toast.success("Fakultas berhasil diperbarui");
+            toast.success("Unit berhasil diperbarui");
           }
           else {
             await createFaculty(payload);
-            toast.success("Fakultas berhasil ditambahkan");
+            toast.success("Unit berhasil ditambahkan");
           }
           closeFacultyForm();
         }
         catch (facultyError) {
-          toast.error("Gagal menyimpan fakultas", {
+          toast.error("Gagal menyimpan unit", {
             description: handleApiError(facultyError),
           });
         }
@@ -252,10 +318,10 @@ export function ManageAdminsPage() {
         }
         try {
           await deleteFaculty(facultyDeleteTarget.id);
-          toast.success("Fakultas berhasil dihapus");
+          toast.success("Unit berhasil dihapus");
         }
         catch (facultyDeleteError) {
-          toast.error("Gagal menghapus fakultas", {
+          toast.error("Gagal menghapus unit", {
             description: handleApiError(facultyDeleteError),
           });
         }
@@ -269,7 +335,7 @@ export function ManageAdminsPage() {
         <div className="white-card bg-white px-6 py-5 rounded-2xl shadow-sm space-y-1 w-full sm:w-fit sm:max-w-lg">
           <h1 className="text-foreground text-xl font-semibold">Manajemen Admin</h1>
           <p className="text-sm text-muted-foreground">
-            Tambah, ubah, dan hapus admin super maupun fakultas
+            Tambah, ubah, dan hapus admin super maupun unit
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
@@ -278,7 +344,7 @@ export function ManageAdminsPage() {
               <SelectValue placeholder="Filter per role"/>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="admin_fakultas">Admin Fakultas</SelectItem>
+                <SelectItem value="admin_unit">Admin Unit</SelectItem>
               <SelectItem value="super_admin">Super Admin</SelectItem>
               <SelectItem value="all">Semua Admin</SelectItem>
             </SelectContent>
@@ -324,11 +390,11 @@ export function ManageAdminsPage() {
                 <Label htmlFor="admin-password">Password {editingUser ? "(opsional)" : "default"}</Label>
                 <Input id="admin-password" type="password" placeholder={editingUser ? "Biarkan kosong jika tidak diubah" : "Minimal 8 karakter"} value={formState.password} onChange={(e) => handleFormChange("password", e.target.value)}/>
               </div>
-              {formState.role === "admin_fakultas" && (<div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="admin-faculty">Fakultas</Label>
+              {(formState.role === "admin_unit" || formState.role === "admin_fakultas") && (<div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="admin-faculty">Unit</Label>
                   <Select value={formState.faculty_id || undefined} onValueChange={(value) => handleFormChange("faculty_id", value)} disabled={facultiesLoading}>
                     <SelectTrigger id="admin-faculty">
-                      <SelectValue placeholder={facultiesLoading ? "Memuat fakultas..." : "Pilih fakultas"}/>
+                      <SelectValue placeholder={facultiesLoading ? "Memuat unit..." : "Pilih unit"}/>
                     </SelectTrigger>
                     <SelectContent>
                       {facultiesLoading ? (<SelectItem value="loading" disabled>
@@ -336,7 +402,7 @@ export function ManageAdminsPage() {
                         </SelectItem>) : faculties && faculties.length > 0 ? (faculties.map((faculty) => (<SelectItem key={faculty.id} value={faculty.id}>
                             {faculty.name}
                           </SelectItem>))) : (<SelectItem value="empty" disabled>
-                          Belum ada fakultas terdaftar
+                          Belum ada unit terdaftar
                         </SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -375,7 +441,7 @@ export function ManageAdminsPage() {
                     <th className="py-3">Nama</th>
                     <th className="py-3">Email</th>
                     <th className="py-3">Role</th>
-                    <th className="py-3">Fakultas</th>
+                    <th className="py-3">Unit</th>
                     <th className="py-3">Status</th>
                     <th className="py-3 text-right">Aksi</th>
                   </tr>
@@ -394,7 +460,7 @@ export function ManageAdminsPage() {
                         </Badge>
                       </td>
                       <td className="py-3 text-sm text-muted-foreground">
-                        {user.role === "admin_fakultas" ? user.faculty?.name || "-" : "-"}
+                        {(user.role === "admin_unit" || user.role === "admin_fakultas") ? (user.unit?.name || user.faculty?.name || "-") : "-"}
                       </td>
                       <td className="py-3">
                         <Badge className={user.is_active ? "bg-[#DCFCE7] text-[#166534] border-[#A7F3D0]" : "bg-[#FEE2E2] text-[#B91C1C] border-[#FECACA]"}>
@@ -423,24 +489,24 @@ export function ManageAdminsPage() {
       <Card>
         <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <CardTitle>Daftar Fakultas</CardTitle>
-            <CardDescription>Tambah, ubah, dan pantau fakultas yang terdaftar</CardDescription>
+            <CardTitle>Daftar Unit</CardTitle>
+            <CardDescription>Tambah, ubah, dan pantau unit yang terdaftar</CardDescription>
           </div>
           <Button onClick={openCreateFacultyForm} className="bg-[#003D82] hover:bg-[#002855]">
             <Building2 size={16} />
-            Tambah Fakultas
+            Tambah Unit
           </Button>
         </CardHeader>
         {isFacultyFormOpen && (
           <CardContent className="space-y-4 border-t pt-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="faculty-name">Nama Fakultas</Label>
-                <Input id="faculty-name" placeholder="Contoh: Fakultas Teknik" value={facultyFormState.name} onChange={(e) => handleFacultyFormChange("name", e.target.value)} />
+                <Label htmlFor="faculty-name">Nama Unit</Label>
+                <Input id="faculty-name" placeholder="Contoh: Unit Teknik" value={facultyFormState.name} onChange={(e) => handleFacultyFormChange("name", e.target.value)} />
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="faculty-description">Deskripsi</Label>
-                <Textarea id="faculty-description" rows={3} placeholder="Tuliskan catatan singkat atau singkatan fakultas" value={facultyFormState.description} onChange={(e) => handleFacultyFormChange("description", e.target.value)} />
+                <Textarea id="faculty-description" rows={3} placeholder="Tuliskan catatan singkat atau singkatan unit" value={facultyFormState.description} onChange={(e) => handleFacultyFormChange("description", e.target.value)} />
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -458,11 +524,11 @@ export function ManageAdminsPage() {
           {facultiesLoading ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <Loader2 className="animate-spin mb-3" size={32} />
-              Memuat data fakultas...
+              Memuat data unit...
             </div>
           ) : faculties.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground">
-              Belum ada fakultas terdaftar
+              Belum ada unit terdaftar
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -473,6 +539,8 @@ export function ManageAdminsPage() {
                     <th className="py-3">Deskripsi</th>
                     <th className="py-3">Admin Aktif</th>
                     <th className="py-3">Total Tiket</th>
+                    <th className="py-3">Menunggu Validasi</th>
+                    <th className="py-3">Selesai</th>
                     <th className="py-3 text-right">Aksi</th>
                   </tr>
                 </thead>
@@ -480,6 +548,9 @@ export function ManageAdminsPage() {
                   {faculties.map((faculty) => {
                     const adminCount = faculty.users_count ?? faculty.users?.length ?? 0;
                     const assignmentCount = faculty.assignments_count ?? faculty.assignments?.length ?? 0;
+                    const ticketCounts = facultyTicketCounts?.[faculty.id];
+                    const pendingValidationCount = ticketCounts ? ticketCounts.pendingValidation : "-";
+                    const resolvedCount = ticketCounts ? ticketCounts.resolved : "-";
                     return (
                       <tr key={faculty.id} className="border-b last:border-0">
                         <td className="py-3">
@@ -490,6 +561,8 @@ export function ManageAdminsPage() {
                         </td>
                         <td className="py-3 text-sm text-muted-foreground">{adminCount}</td>
                         <td className="py-3 text-sm text-muted-foreground">{assignmentCount}</td>
+                        <td className="py-3 text-sm text-muted-foreground">{pendingValidationCount}</td>
+                        <td className="py-3 text-sm text-muted-foreground">{resolvedCount}</td>
                         <td className="py-3">
                           <div className="flex justify-end gap-2">
                             <Button variant="outline" size="sm" onClick={() => openEditFacultyForm(faculty)}>
@@ -546,9 +619,9 @@ export function ManageAdminsPage() {
         }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Hapus fakultas?</AlertDialogTitle>
+            <AlertDialogTitle>Hapus unit?</AlertDialogTitle>
             <AlertDialogDescription>
-              Fakultas "{facultyDeleteTarget?.name}" akan dihapus.
+              Unit "{facultyDeleteTarget?.name}" akan dihapus.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

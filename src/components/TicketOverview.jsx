@@ -3,7 +3,7 @@ import { FileText, Clock, CheckCircle2, XCircle, Loader2, Activity } from "lucid
 import { useReportStatistics } from "../hooks/useTickets";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
-const RANGE_OPTIONS = {
+export const RANGE_OPTIONS = {
     "7days": { label: "7 Hari Terakhir", days: 7 },
     "30days": { label: "30 Hari Terakhir", days: 30 },
     "90days": { label: "3 Bulan Terakhir", days: 90 },
@@ -16,11 +16,7 @@ const PRIORITY_CONFIG = [
     { key: "low", label: "Rendah", accent: "bg-emerald-100", bar: "bg-emerald-500" },
 ];
 
-export function TicketOverview() {
-    const [timeRange, setTimeRange] = useState("7days");
-    const currentRange = RANGE_OPTIONS[timeRange] ?? RANGE_OPTIONS["7days"];
-    const { stats, loading, error } = useReportStatistics({ range: currentRange.days });
-
+export function PriorityDistributionCard({ stats, loading, error }) {
     const priorityDistribution = useMemo(() => {
         return PRIORITY_CONFIG.map((priority) => {
             const count = stats?.by_priority?.[priority.key] ?? 0;
@@ -28,7 +24,7 @@ export function TicketOverview() {
             return { ...priority, count, percent };
         });
     }, [stats]);
-    
+
     if (loading) {
         return (
             <div className="flex items-center justify-center py-12">
@@ -36,7 +32,7 @@ export function TicketOverview() {
             </div>
         );
     }
-    
+
     if (error) {
         return (
             <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700">
@@ -44,7 +40,60 @@ export function TicketOverview() {
             </div>
         );
     }
-    
+
+    return (
+        <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
+            <div className="flex items-center gap-3 mb-5">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                    <Activity size={18} />
+                </div>
+                <div>
+                    <p className="text-sm text-muted-foreground">Distribusi Prioritas</p>
+                    <p className="text-base text-foreground font-medium">{stats?.total || 0} tiket aktif</p>
+                </div>
+            </div>
+            <div className="grid gap-3">
+                {priorityDistribution.map((item) => (
+                    <div key={item.key} className="rounded-xl border border-gray-100 bg-gray-50/60 px-4 py-3">
+                        <div className="flex items-center justify-between text-sm font-medium text-foreground">
+                            <span>{item.label}</span>
+                            <span className="text-muted-foreground">{item.count} tiket · {item.percent}%</span>
+                        </div>
+                        <div className="mt-2 text-xs text-muted-foreground">
+                            {item.description || 'Proporsi terhadap total tiket'}
+                        </div>
+                        <div className="mt-3 h-3 rounded-full border border-gray-200 bg-white overflow-hidden">
+                            <div
+                                className="h-full bg-gray-900 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.025)] transition-all duration-500"
+                                style={{ width: `${item.percent > 0 ? Math.max(item.percent, 2) : 0}%` }}
+                            ></div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+export function TicketOverviewView({ stats, loading, error, timeRange, setTimeRange, hidePriorityDistribution = false }) {
+    const currentRange = RANGE_OPTIONS[timeRange] ?? RANGE_OPTIONS["7days"];
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center py-12">
+                <Loader2 className="animate-spin text-[#6B7FE8]" size={32} />
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700">
+                Gagal memuat statistik tiket
+            </div>
+        );
+    }
+
     const statItems = [
         {
             label: "Total Tiket",
@@ -111,35 +160,24 @@ export function TicketOverview() {
           </div>))}
             </div>
 
-            <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
-                <div className="flex items-center gap-3 mb-5">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                        <Activity size={18} />
-                    </div>
-                    <div>
-                        <p className="text-sm text-muted-foreground">Distribusi Prioritas</p>
-                        <p className="text-base text-foreground font-medium">{stats?.total || 0} tiket aktif</p>
-                    </div>
-                </div>
-                <div className="grid gap-3">
-                    {priorityDistribution.map((item) => (
-                        <div key={item.key} className="rounded-xl border border-gray-100 bg-gray-50/60 px-4 py-3">
-                            <div className="flex items-center justify-between text-sm font-medium text-foreground">
-                                <span>{item.label}</span>
-                                <span className="text-muted-foreground">{item.count} tiket · {item.percent}%</span>
-                            </div>
-                            <div className="mt-2 text-xs text-muted-foreground">
-                                {item.description || 'Proporsi terhadap total tiket'}
-                            </div>
-                            <div className="mt-3 h-3 rounded-full border border-gray-200 bg-white overflow-hidden">
-                                <div
-                                    className="h-full bg-gray-900 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.025)] transition-all duration-500"
-                                    style={{ width: `${item.percent > 0 ? Math.max(item.percent, 2) : 0}%` }}
-                                ></div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
+            {!hidePriorityDistribution && (
+                <PriorityDistributionCard stats={stats} loading={false} error={null} />
+            )}
     </div>);
+}
+
+export function TicketOverview() {
+    const [timeRange, setTimeRange] = useState("7days");
+    const currentRange = RANGE_OPTIONS[timeRange] ?? RANGE_OPTIONS["7days"];
+    const { stats, loading, error } = useReportStatistics({ range: currentRange.days });
+
+    return (
+        <TicketOverviewView
+            stats={stats}
+            loading={loading}
+            error={error}
+            timeRange={timeRange}
+            setTimeRange={setTimeRange}
+        />
+    );
 }

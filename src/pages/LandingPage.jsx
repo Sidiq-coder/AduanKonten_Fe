@@ -4,7 +4,7 @@ import { UnilaLogo } from "../components/UnilaLogo";
 
 const NAV_ITEMS = [
   { path: "/", label: "Beranda" },
-  { path: "/kirim-laporan", label: "Kirim Laporan" },
+  { path: "/kirim-laporan", label: "Kirim Aduan" },
   { path: "/cek-status", label: "Cek Status" },
 ];
 

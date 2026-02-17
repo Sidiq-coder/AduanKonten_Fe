@@ -31,6 +31,7 @@ import { useAuth } from "../contexts/AuthContext";
 const statusConfig = {
   resolved: { label: "Selesai", color: "bg-[#D4F4E2] text-[#16A34A] border-[#A5E8C8]" },
   in_progress: { label: "Sedang Diproses", color: "bg-[#FFE8D9] text-[#EA580C] border-[#FFD4A5]" },
+  pending_validation: { label: "Menunggu Validasi", color: "bg-[#FFE8D9] text-[#EA580C] border-[#FFD4A5]" },
   submitted: { label: "Terkirim", color: "bg-[#E0E7FF] text-[#4F46E5] border-[#C7D2FE]" },
   rejected: { label: "Ditolak", color: "bg-[#FFCDD2] text-[#C62828] border-[#EF9A9A]" },
 };
@@ -50,7 +51,7 @@ export function TicketDetailPage({ ticketId, onBack }) {
 
   const currentRole = user?.role;
   const canManageAssignments = currentRole === "super_admin" || currentRole === "admin";
-  const isFacultyRole = currentRole === "admin_fakultas" || currentRole === "fakultas";
+  const isFacultyRole = currentRole === "admin_unit" || currentRole === "admin_fakultas" || currentRole === "fakultas";
   const isSuperAdmin = currentRole === "super_admin";
 
   const resolvedTicketId = ticketId ?? params?.id ?? null;
@@ -78,9 +79,12 @@ export function TicketDetailPage({ ticketId, onBack }) {
   const [assignmentNotes, setAssignmentNotes] = useState("");
   const [assignmentDueDate, setAssignmentDueDate] = useState("");
   const [isAssigning, setIsAssigning] = useState(false);
-  const [responseStatus, setResponseStatus] = useState("");
-  const [responseNotes, setResponseNotes] = useState("");
-  const [isSubmittingResponse, setIsSubmittingResponse] = useState(false);
+  const [isRequestingCompletion, setIsRequestingCompletion] = useState(false);
+  const [isApprovingCompletion, setIsApprovingCompletion] = useState(false);
+  const [isRejectingCompletion, setIsRejectingCompletion] = useState(false);
+  const [completionRejectionReason, setCompletionRejectionReason] = useState("");
+  const [unitRejectionReason, setUnitRejectionReason] = useState("");
+  const [isRejectingTicket, setIsRejectingTicket] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
 
   useEffect(() => {
@@ -142,41 +146,133 @@ export function TicketDetailPage({ ticketId, onBack }) {
     navigate(-1);
   };
 
-  const handleSubmitResponse = async () => {
-    if (!responseStatus) {
-      toast.error("Pilih status terlebih dahulu");
-      return;
-    }
-    if (!responseNotes.trim()) {
-      toast.error("Keterangan wajib diisi");
+  const handleRequestCompletion = async () => {
+    if (!normalizedTicketId) {
+      toast.error("Tiket tidak valid");
       return;
     }
 
-    setIsSubmittingResponse(true);
+    setIsRequestingCompletion(true);
     try {
-      await createAction({
-        report_id: normalizedTicketId,
-        action_type: responseStatus,
-        notes: responseNotes,
-      });
-
-      toast.success("Respon berhasil dikirim", {
-        description: `Tiket telah ditandai sebagai ${responseStatus === "Selesai" ? "selesai" : "ditolak dan dikembalikan ke super admin"}`,
+      await apiClient.post(`/reports/${normalizedTicketId}/request-completion`);
+      toast.success("Pengajuan selesai terkirim", {
+        description: "Menunggu validasi dari Super Admin.",
         icon: <CheckCircle2 size={20} className="text-[#16A34A]" />,
       });
-
-      setResponseStatus("");
-      setResponseNotes("");
-      await Promise.all([fetchActions(), fetchTicket(), fetchAssignments()]);
+      await Promise.all([fetchTicket(), fetchAssignments()]);
     } catch (err) {
-      console.error("Response submission error:", err);
-      toast.error("Gagal mengirim respon", {
+      toast.error("Gagal mengajukan penyelesaian", {
+        description: err.response?.data?.message || "Silakan coba lagi",
+      });
+    } finally {
+      setIsRequestingCompletion(false);
+    }
+  };
+
+  const handleApproveCompletion = async () => {
+    if (!normalizedTicketId) {
+      toast.error("Tiket tidak valid");
+      return;
+    }
+    setIsApprovingCompletion(true);
+    try {
+      await apiClient.post(`/reports/${normalizedTicketId}/approve-completion`);
+      toast.success("Penyelesaian disetujui", {
+        description: "Status tiket berubah menjadi Selesai.",
+        icon: <CheckCircle2 size={20} className="text-[#16A34A]" />,
+      });
+      setCompletionRejectionReason("");
+      await Promise.all([fetchTicket(), fetchAssignments()]);
+    } catch (err) {
+      toast.error("Gagal menyetujui", {
+        description: err.response?.data?.message || "Silakan coba lagi",
+      });
+    } finally {
+      setIsApprovingCompletion(false);
+    }
+  };
+
+  const handleRejectCompletion = async () => {
+    if (!normalizedTicketId) {
+      toast.error("Tiket tidak valid");
+      return;
+    }
+    if (completionRejectionReason.trim().length < 10) {
+      toast.error("Alasan penolakan minimal 10 karakter");
+      return;
+    }
+
+    setIsRejectingCompletion(true);
+    try {
+      await apiClient.post(`/reports/${normalizedTicketId}/reject-completion`, {
+        rejection_reason: completionRejectionReason.trim(),
+      });
+      toast.success("Pengajuan penyelesaian ditolak", {
+        description: "Status tiket kembali ke Diproses.",
+      });
+      setCompletionRejectionReason("");
+      await Promise.all([fetchTicket(), fetchAssignments()]);
+    } catch (err) {
+      toast.error("Gagal menolak", {
         description: err.response?.data?.errors
           ? Object.values(err.response.data.errors).flat()[0]
           : err.response?.data?.message || "Silakan coba lagi",
       });
     } finally {
-      setIsSubmittingResponse(false);
+      setIsRejectingCompletion(false);
+    }
+  };
+
+  const handleRejectTicketAsUnitAdmin = async () => {
+    if (!normalizedTicketId) {
+      toast.error("Tiket tidak valid");
+      return;
+    }
+    if (unitRejectionReason.trim().length < 10) {
+      toast.error("Alasan penolakan minimal 10 karakter");
+      return;
+    }
+
+    setIsRejectingTicket(true);
+    try {
+      await createAction({
+        report_id: normalizedTicketId,
+        action_type: "Ditolak",
+        notes: unitRejectionReason.trim(),
+      });
+
+      toast.success("Tiket ditolak", {
+        description: "Tiket dikembalikan ke Super Admin untuk ditinjau.",
+      });
+      setUnitRejectionReason("");
+      await Promise.all([fetchTicket(), fetchAssignments(), fetchActions()]);
+    } catch (err) {
+      toast.error("Gagal menolak tiket", {
+        description: err.response?.data?.errors
+          ? Object.values(err.response.data.errors).flat()[0]
+          : err.response?.data?.message || "Silakan coba lagi",
+      });
+    } finally {
+      setIsRejectingTicket(false);
+    }
+  };
+
+  const handleTakeSelf = async () => {
+    if (!normalizedTicketId) {
+      toast.error("Tiket tidak valid");
+      return;
+    }
+
+    try {
+      await apiClient.post(`/reports/${normalizedTicketId}/take-self`);
+      toast.success("Tiket berhasil diambil", {
+        description: "Anda sekarang bertanggung jawab menangani tiket ini.",
+      });
+      await Promise.all([fetchTicket(), fetchAssignments()]);
+    } catch (err) {
+      toast.error("Gagal mengambil tiket", {
+        description: err.response?.data?.message || "Silakan coba lagi",
+      });
     }
   };
 
@@ -198,10 +294,10 @@ export function TicketDetailPage({ ticketId, onBack }) {
       return;
     }
 
-    const facultyId = targetAdmin.faculty_id || targetAdmin.faculty?.id;
-    if (!facultyId) {
-      toast.error("Admin belum memiliki data fakultas", {
-        description: "Pastikan admin terkait terhubung ke fakultas",
+    const unitId = targetAdmin.unit_id || targetAdmin.unit?.id || targetAdmin.faculty_id || targetAdmin.faculty?.id;
+    if (!unitId) {
+      toast.error("Admin belum memiliki data unit", {
+        description: "Pastikan admin terkait terhubung ke unit/fakultas",
       });
       return;
     }
@@ -216,7 +312,7 @@ export function TicketDetailPage({ ticketId, onBack }) {
       if (isReassignment) {
         await updateAssignment(currentAssignment.id, {
           assigned_to: targetAdmin.id,
-          faculty_id: facultyId,
+          unit_id: unitId,
           notes: trimmedNotes || undefined,
           due_date: assignmentDueDate || undefined,
         });
@@ -224,7 +320,7 @@ export function TicketDetailPage({ ticketId, onBack }) {
         await createAssignment({
           report_id: normalizedTicketId,
           assigned_to: targetAdmin.id,
-          faculty_id: facultyId,
+          unit_id: unitId,
           notes: trimmedNotes || undefined,
           due_date: assignmentDueDate || undefined,
         });
@@ -297,6 +393,8 @@ export function TicketDetailPage({ ticketId, onBack }) {
 
   const badgeKey = statusConfig[ticket.status]
     ? ticket.status
+    : ticket.report_status === "Menunggu Validasi"
+    ? "pending_validation"
     : ticket.report_status === "Selesai"
     ? "resolved"
     : ticket.report_status === "Ditolak" && canManageAssignments && assignmentList.length === 0
@@ -334,7 +432,8 @@ export function TicketDetailPage({ ticketId, onBack }) {
   const isTicketRejected = isFacultyRole && ticket.report_status === "Ditolak" && assignmentList.length === 0;
   const isFinalRejected = ticket.report_status === "Ditolak" && canManageAssignments && assignmentList.length === 0;
   const isTicketCompleted = ticket.report_status === "Selesai";
-  const shouldShowAssignmentForm = canManageAssignments && !isFinalRejected && !isTicketCompleted;
+  const isPendingValidation = ticket.report_status === "Menunggu Validasi";
+  const shouldShowAssignmentForm = canManageAssignments && !isFinalRejected && !isTicketCompleted && !isPendingValidation;
 
   const timelineEvents = [];
   if (ticket.created_at) {
@@ -354,7 +453,7 @@ export function TicketDetailPage({ ticketId, onBack }) {
       const timestamp = assignment.assigned_at || assignment.created_at || assignment.updated_at;
       if (!timestamp)
         return;
-      const assignee = assignment.assigned_to_user?.name || "Admin Fakultas";
+      const assignee = assignment.assigned_to_user?.name || "Admin Unit";
       const facultyName = assignment.assigned_to_user?.faculty?.name || assignment.faculty?.name;
       timelineEvents.push({
         id: `assignment-${assignment.id || idx}`,
@@ -386,6 +485,36 @@ export function TicketDetailPage({ ticketId, onBack }) {
         tone,
       });
     });
+
+  if (ticket.completion_requested_at) {
+    const requesterName = ticket.completion_requester?.name;
+    timelineEvents.push({
+      id: "completion-requested",
+      label: "Pengajuan selesai",
+      description: requesterName ? `Diajukan oleh ${requesterName}` : "Menunggu validasi Super Admin",
+      timestamp: ticket.completion_requested_at,
+      actor: requesterName,
+      tone: "warning",
+    });
+  }
+
+  if (ticket.completion_validated_at) {
+    const isApproved = ticket.completion_approved === true;
+    const validatorName = ticket.completion_validator?.name;
+    const descriptionParts = [];
+    descriptionParts.push(isApproved ? "Disetujui" : "Ditolak");
+    if (!isApproved && ticket.completion_rejection_reason) {
+      descriptionParts.push(ticket.completion_rejection_reason);
+    }
+    timelineEvents.push({
+      id: "completion-validated",
+      label: "Validasi penyelesaian",
+      description: descriptionParts.filter(Boolean).join(" · "),
+      timestamp: ticket.completion_validated_at,
+      actor: validatorName,
+      tone: isApproved ? "success" : "danger",
+    });
+  }
 
   const hasRejectAction = timelineEvents.some((event) => event.tone === "danger");
   if (ticket.report_status === "Ditolak" && !hasRejectAction) {
@@ -573,50 +702,111 @@ export function TicketDetailPage({ ticketId, onBack }) {
         </div>
 
         <div className="space-y-6">
-          {isFacultyRole && assignmentList.length > 0 && ticket.report_status !== "Selesai" && (
+          {isFacultyRole && assignmentList.length > 0 && !isTicketCompleted && (
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100/50 p-6">
               <div className="flex items-center gap-3 mb-5 pb-5 border-b border-gray-100">
                 <div className="w-10 h-10 bg-gradient-to-br from-[#D4F4E2] to-[#A5E8C8] rounded-xl flex items-center justify-center">
                   <Send size={20} className="text-[#16A34A]" />
                 </div>
-                <h3 className="text-[#2D3748]">Kirim Respon ke Super Admin</h3>
+                <h3 className="text-[#2D3748]">Ajukan Penyelesaian</h3>
               </div>
 
               <div className="space-y-4">
-                <div className="bg-[#F0FDF4] border border-[#BBF7D0] rounded-xl p-3 text-sm text-[#15803D]">
-                  Setelah menyelesaikan tiket ini, silakan pilih status dan berikan keterangan hasil penanganan.
+                {ticket.report_status === "Menunggu Validasi" ? (
+                  <div className="bg-[#EEF2FF] border border-[#C7D2FE] rounded-xl p-3 text-sm text-[#4F46E5]">
+                    Pengajuan penyelesaian sudah dikirim. Menunggu validasi dari Super Admin.
+                  </div>
+                ) : ticket.report_status !== "Diproses" ? (
+                  <div className="bg-[#F9FAFB] border border-gray-200 rounded-xl p-3 text-sm text-[#6B7280]">
+                    Pengajuan penyelesaian hanya dapat dilakukan saat status tiket "Diproses".
+                  </div>
+                ) : (
+                  <>
+                    <div className="bg-[#F0FDF4] border border-[#BBF7D0] rounded-xl p-3 text-sm text-[#15803D]">
+                      Setelah penanganan selesai, klik tombol di bawah untuk mengajukan validasi penyelesaian ke Super Admin.
+                    </div>
+                    <Button
+                      onClick={handleRequestCompletion}
+                      disabled={isRequestingCompletion}
+                      className="w-full bg-[#003D82] hover:bg-[#002B60] text-white rounded-xl h-11 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isRequestingCompletion ? "Mengirim..." : "Ajukan Selesai"}
+                    </Button>
+                  </>
+                )}
+
+                {ticket.report_status !== "Menunggu Validasi" && ticket.report_status !== "Selesai" && ticket.report_status !== "Ditolak" && (
+                  <div className="border-t border-gray-100 pt-4 mt-4 space-y-3">
+                    <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-xl p-3 text-sm text-[#B91C1C]">
+                      Jika tiket tidak dapat diproses oleh unit Anda, Anda dapat menolak penanganan dan mengembalikan tiket ke Super Admin.
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-[#6B7280] text-sm">Alasan penolakan</Label>
+                      <Textarea
+                        value={unitRejectionReason}
+                        onChange={(e) => setUnitRejectionReason(e.target.value)}
+                        placeholder="Minimal 10 karakter"
+                        className="bg-[#F9FAFB] border-gray-200 rounded-xl min-h-[90px] resize-y"
+                      />
+                    </div>
+
+                    <Button
+                      onClick={handleRejectTicketAsUnitAdmin}
+                      disabled={isRejectingTicket || isRequestingCompletion}
+                      variant="outline"
+                      className="w-full rounded-xl h-11 border-[#DC2626] text-[#DC2626] hover:bg-[#DC2626] hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isRejectingTicket ? "Mengirim..." : "Tolak"}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {isSuperAdmin && ticket.report_status === "Menunggu Validasi" && (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100/50 p-6">
+              <div className="flex items-center gap-3 mb-5 pb-5 border-b border-gray-100">
+                <div className="w-10 h-10 bg-gradient-to-br from-[#FFE8D9] to-[#FFD4A5] rounded-xl flex items-center justify-center">
+                  <AlertCircle size={20} className="text-[#EA580C]" />
+                </div>
+                <h3 className="text-[#2D3748]">Validasi Penyelesaian</h3>
+              </div>
+
+              <div className="space-y-4">
+                <div className="bg-[#FFF7ED] border border-[#FFD4A5] rounded-xl p-3 text-sm text-[#9A3412]">
+                  Tiket ini menunggu persetujuan Super Admin untuk diselesaikan.
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-[#6B7280] text-sm">Status Penyelesaian</Label>
-                  <Select value={responseStatus} onValueChange={setResponseStatus}>
-                    <SelectTrigger className="bg-[#F9FAFB] border-gray-200 rounded-xl h-11 hover:bg-white transition-colors">
-                      <SelectValue placeholder="Pilih status..." />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl">
-                      <SelectItem value="Selesai">Selesai</SelectItem>
-                      <SelectItem value="Ditolak">Ditolak</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-[#6B7280] text-sm">Keterangan</Label>
+                  <Label className="text-[#6B7280] text-sm">Alasan penolakan (jika ditolak)</Label>
                   <Textarea
-                    value={responseNotes}
-                    onChange={(e) => setResponseNotes(e.target.value)}
-                    placeholder="Jelaskan hasil penanganan atau alasan penolakan..."
-                    className="bg-[#F9FAFB] border-gray-200 rounded-xl min-h-[100px] resize-y"
+                    value={completionRejectionReason}
+                    onChange={(e) => setCompletionRejectionReason(e.target.value)}
+                    placeholder="Minimal 10 karakter"
+                    className="bg-[#F9FAFB] border-gray-200 rounded-xl min-h-[90px] resize-y"
                   />
                 </div>
 
-                <Button
-                  onClick={handleSubmitResponse}
-                  disabled={!responseStatus || !responseNotes.trim() || isSubmittingResponse}
-                  className="w-full bg-[#003D82] hover:bg-[#002B60] text-white rounded-xl h-11 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isSubmittingResponse ? "Mengirim..." : "Kirim Respon"}
-                </Button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Button
+                    onClick={handleApproveCompletion}
+                    disabled={isApprovingCompletion || isRejectingCompletion}
+                    variant="default"
+                    className="w-full rounded-xl h-11 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isApprovingCompletion ? "Memproses..." : "Setujui"}
+                  </Button>
+                  <Button
+                    onClick={handleRejectCompletion}
+                    disabled={isApprovingCompletion || isRejectingCompletion}
+                    variant="outline"
+                    className="w-full rounded-xl h-11 border-[#DC2626] text-[#DC2626] hover:bg-[#DC2626] hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isRejectingCompletion ? "Memproses..." : "Tolak"}
+                  </Button>
+                </div>
               </div>
             </div>
           )}
@@ -633,7 +823,7 @@ export function TicketDetailPage({ ticketId, onBack }) {
               <div className="space-y-4">
                 {primaryAssignment && (
                   <div className="bg-[#EEF2FF] border border-[#C7D2FE] rounded-xl p-3 text-xs text-[#4F46E5]">
-                    Tiket saat ini ditangani oleh {assignedAdminName || "admin fakultas"}. Anda dapat mengalihkan admin atau
+                    Tiket saat ini ditangani oleh {assignedAdminName || "admin unit"}. Anda dapat mengalihkan admin atau
                     memperbarui catatan dan batas waktu di bawah ini.
                   </div>
                 )}
@@ -646,10 +836,10 @@ export function TicketDetailPage({ ticketId, onBack }) {
                     </SelectTrigger>
                     <SelectContent className="rounded-xl max-h-60">
                       {adminUsers
-                        .filter((admin) => (admin.role === "admin_fakultas" || admin.role === "super_admin") && admin.id)
+                          .filter((admin) => (admin.role === "admin_unit" || admin.role === "admin_fakultas") && admin.id)
                         .map((admin) => (
                           <SelectItem key={admin.id} value={admin.id.toString()}>
-                            {admin.name} ({admin.faculty?.name || "Super Admin"})
+                              {admin.name} ({admin.unit?.name || admin.faculty?.name || "-"})
                           </SelectItem>
                         ))}
                     </SelectContent>
@@ -682,7 +872,7 @@ export function TicketDetailPage({ ticketId, onBack }) {
                   <Textarea
                     value={assignmentNotes}
                     onChange={(e) => setAssignmentNotes(e.target.value)}
-                    placeholder="Berikan konteks atau instruksi tambahan untuk admin fakultas"
+                    placeholder="Berikan konteks atau instruksi tambahan untuk admin unit"
                     className="bg-[#F9FAFB] border-gray-200 rounded-xl min-h-[90px] resize-y"
                   />
                 </div>
@@ -723,7 +913,7 @@ export function TicketDetailPage({ ticketId, onBack }) {
                 <h3 className="text-[#2D3748]">{canManageAssignments ? "Informasi Penugasan" : "Penugasan Fakultas"}</h3>
                 {isFacultyRole && (
                   <p className="text-xs text-[#6B7280] mt-1">
-                    Tiket ini hanya dapat dipantau oleh admin fakultas. Hubungi super admin bila perlu perubahan penugasan.
+                    Tiket ini hanya dapat dipantau oleh admin unit. Hubungi super admin bila perlu perubahan penugasan.
                   </p>
                 )}
               </div>
@@ -804,7 +994,7 @@ export function TicketDetailPage({ ticketId, onBack }) {
                   <Label className="text-[#6B7280] text-xs block">Status Penanganan</Label>
                   {primaryAssignment ? (
                     <div className="space-y-2">
-                      <p className="text-sm text-[#1F2937] font-medium">{assignedAdminName || "Admin Fakultas"}</p>
+                      <p className="text-sm text-[#1F2937] font-medium">{assignedAdminName || "Admin Unit"}</p>
                       {assignedFacultyName && <p className="text-xs text-[#6B7280]">{assignedFacultyName}</p>}
                       <p className="text-sm text-[#4B5563]">
                         Penandaan selesai atau ditolak kini hanya dapat dilakukan dari halaman detail tiket pada dashboard admin
@@ -825,10 +1015,22 @@ export function TicketDetailPage({ ticketId, onBack }) {
                       ) : (
                         <>
                           <p className="text-sm text-[#4B5563]">
-                            Tugaskan tiket ke admin fakultas terlebih dahulu agar status dapat diperbarui melalui dashboard fakultas.
+                            Tugaskan tiket ke admin unit terlebih dahulu agar status dapat diperbarui melalui dashboard fakultas.
                           </p>
+                          {user?.role === "super_admin" && !primaryAssignment && (ticket.report_status === "Diterima" || ticket.report_status === "Diproses") && (
+                            <div className="border-t border-gray-200 pt-3">
+                              <p className="text-xs text-[#6B7280] mb-2">Atau tangani sendiri tiket ini:</p>
+                              <Button
+                                onClick={handleTakeSelf}
+                                variant="outline"
+                                className="w-full rounded-xl h-10 border-[#003D82] text-[#003D82] hover:bg-[#003D82] hover:text-white transition-all"
+                              >
+                                Ambil Tiket (Super Admin)
+                              </Button>
+                            </div>
+                          )}
                           {/* Tombol Tolak Tiket hanya untuk superadmin dengan modal konfirmasi */}
-                          {user?.role === "super_admin" && ticket.report_status !== "Selesai" && ticket.report_status !== "Ditolak" && (
+                          {user?.role === "super_admin" && ticket.report_status !== "Selesai" && ticket.report_status !== "Ditolak" && ticket.report_status !== "Menunggu Validasi" && (
                             <div className="border-t border-gray-200 pt-3">
                               <p className="text-xs text-[#6B7280] mb-2">Atau tolak tiket ini:</p>
                               <Button

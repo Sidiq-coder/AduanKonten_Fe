@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation, Outlet } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -15,9 +16,10 @@ import { AssignmentsPage } from "./pages/AssignmentsPage";
 import { Toaster } from "./components/ui/sonner";
 // Dashboard untuk Admin/Superadmin
 import { Sidebar } from "./components/Sidebar";
-import { TicketOverview } from "./components/TicketOverview";
+import { PriorityDistributionCard, RANGE_OPTIONS, TicketOverviewView } from "./components/TicketOverview";
 import { RecentActivity } from "./components/RecentActivity";
 import { PriorityTickets } from "./components/PriorityTickets";
+import { useReportStatistics } from "./hooks/useTickets";
 // Dashboard untuk Fakultas
 import { FakultasSidebar } from "./components/FakultasSidebar";
 import { FakultasTicketOverview } from "./components/FakultasTicketOverview";
@@ -74,10 +76,22 @@ function AdminLayout() {
     </div>);
 }
 function AdminHome() {
+  const [timeRange, setTimeRange] = useState("7days");
+  const currentRange = RANGE_OPTIONS[timeRange] ?? RANGE_OPTIONS["7days"];
+  const { stats, loading, error } = useReportStatistics({ range: currentRange.days });
+
   return (<div className="space-y-6">
-      <TicketOverview />
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <TicketOverviewView
+        stats={stats}
+        loading={loading}
+        error={error}
+        timeRange={timeRange}
+        setTimeRange={setTimeRange}
+        hidePriorityDistribution
+      />
+      <div className="space-y-6">
         <RecentActivity />
+        <PriorityDistributionCard stats={stats} loading={loading} error={error} />
         <PriorityTickets />
       </div>
     </div>);
@@ -108,7 +122,7 @@ function FakultasLayout() {
     navigate('/login');
   };
   return (<div className="min-h-screen flex" style={dashboardBackgroundStyle}>
-      <FakultasSidebar currentPage={resolveSection()} onNavigate={handleNavigate} fakultasName={user?.faculty?.name || 'Admin Fakultas'} userEmail={user?.email || ''} onLogout={handleLogout}/>
+      <FakultasSidebar currentPage={resolveSection()} onNavigate={handleNavigate} fakultasName={user?.faculty?.name || 'Admin Unit'} userEmail={user?.email || ''} onLogout={handleLogout}/>
       <main className="flex-1 min-h-screen p-8">
         <div className="max-w-7xl mx-auto w-full space-y-6">
           <div className="dashboard-shell">
@@ -152,7 +166,7 @@ export default function App() {
           </Route>
 
           {/* Protected routes - Fakultas only */}
-          <Route path="/fakultas/*" element={<ProtectedRoute allowedRoles={['fakultas', 'admin_fakultas']}>
+          <Route path="/fakultas/*" element={<ProtectedRoute allowedRoles={['fakultas', 'admin_fakultas', 'admin_unit']}>
                 <FakultasLayout />
               </ProtectedRoute>}>
             <Route index element={<FakultasHome />}/>

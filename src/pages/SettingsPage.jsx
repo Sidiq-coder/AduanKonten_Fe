@@ -112,11 +112,11 @@ export function SettingsPage({ userName, userEmail, userRole, fakultasName, onUp
           name: adminName.trim(),
           email: adminEmail.trim(),
           password: adminPassword,
-          role: 'admin_fakultas',
-          faculty_id: adminFacultyId,
+          role: 'admin_unit',
+          unit_id: adminFacultyId,
         });
 
-        toast.success("Admin fakultas berhasil ditambahkan");
+        toast.success("Admin unit berhasil ditambahkan");
         resetAssignAdminForm();
       }
       catch (error) {
@@ -140,7 +140,7 @@ export function SettingsPage({ userName, userEmail, userRole, fakultasName, onUp
           <TabsTrigger value="password" className="w-full justify-start data-[state=active]:bg-white data-[state=active]:text-[#003D82]">
             Password
           </TabsTrigger>
-          {userRole === "super-admin" && (<>
+          {(userRole === "super_admin" || userRole === "super-admin") && (<>
               <TabsTrigger value="manage-data" className="w-full justify-start data-[state=active]:bg-white data-[state=active]:text-[#003D82]">
                 Kelola Data
               </TabsTrigger>
@@ -261,7 +261,7 @@ export function SettingsPage({ userName, userEmail, userRole, fakultasName, onUp
             </Card>
           </TabsContent>
 
-          {userRole === "super-admin" && (<>
+          {(userRole === "super_admin" || userRole === "super-admin") && (<>
               <TabsContent value="manage-data" className="mt-0">
                 <Card>
                   <CardHeader>
@@ -312,7 +312,7 @@ export function SettingsPage({ userName, userEmail, userRole, fakultasName, onUp
                 <Card>
                   <CardHeader>
                     <CardTitle>Assign Fakultas</CardTitle>
-                    <CardDescription>Kelola akses admin fakultas</CardDescription>
+                    <CardDescription>Kelola akses admin unit</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
                     <div className="space-y-4">
@@ -374,7 +374,7 @@ export function SettingsPage({ userName, userEmail, userRole, fakultasName, onUp
                     </div>
                     <Alert>
                       <AlertDescription className="text-sm">
-                        Admin fakultas akan menerima email notifikasi dengan kredensial login mereka.
+                        Admin unit akan menerima email notifikasi dengan kredensial login mereka.
                       </AlertDescription>
                     </Alert>
                     <Button

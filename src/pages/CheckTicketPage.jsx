@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Search, AlertCircle, CheckCircle2, Paperclip, Download } from "lucide-react";
 import { toast } from "sonner@2.0.3";
 import { Button } from "../components/ui/button";
@@ -28,6 +28,165 @@ export function CheckTicketPage() {
   const reportDate = formatDateTime(foundReport?.created_at);
   const reportDescription = foundReport?.description || foundReport?.notes || "-";
   const reportLink = foundReport?.link_site || foundReport?.link || "-";
+
+  const latestRejectActionNote = useMemo(() => {
+    const actions = Array.isArray(foundReport?.actions) ? [...foundReport.actions] : [];
+    actions.sort((a, b) => {
+      const timeA = a?.created_at ? new Date(a.created_at).getTime() : 0;
+      const timeB = b?.created_at ? new Date(b.created_at).getTime() : 0;
+      return timeB - timeA;
+    });
+    const latestReject = actions.find(
+      (action) => action?.action_type === "Ditolak" && typeof action?.notes === "string" && action.notes.trim().length > 0
+    );
+    return latestReject?.notes?.trim() || "";
+  }, [foundReport?.actions]);
+
+  const timelineEvents = useMemo(() => {
+    if (!foundReport) {
+      return [];
+    }
+
+    const events = [];
+    const createdAt = foundReport.created_at;
+    if (createdAt) {
+      events.push({
+        id: "ticket-created",
+        label: "Tiket dibuat",
+        description: foundReport.category?.name ? `Kategori ${foundReport.category.name}` : undefined,
+        timestamp: createdAt,
+        actor: reporterName && reporterName !== "-" ? reporterName : undefined,
+        tone: "neutral",
+      });
+    }
+
+    const assignmentList = Array.isArray(foundReport.assignment)
+      ? foundReport.assignment
+      : foundReport.assignment
+      ? [foundReport.assignment]
+      : [];
+
+    assignmentList
+      .filter(Boolean)
+      .forEach((assignment, idx) => {
+        const timestamp = assignment.assigned_at || assignment.created_at || assignment.updated_at;
+        if (!timestamp) {
+          return;
+        }
+        const assigneeName =
+          assignment.assigned_to_user?.name ||
+          assignment.assignedToUser?.name ||
+          assignment.assigned_to_user_name ||
+          "Admin Unit";
+        const unitName = assignment.unit?.name || assignment.faculty?.name;
+        events.push({
+          id: `assignment-${assignment.id || idx}`,
+          label: "Penugasan Admin",
+          description: unitName ? `${assigneeName} · ${unitName}` : `Ditugaskan ke ${assigneeName}`,
+          timestamp,
+          actor: assignment.assigned_by?.name,
+          tone: "info",
+        });
+      });
+
+    const reportActions = Array.isArray(foundReport.actions) ? foundReport.actions : [];
+    reportActions
+      .filter(Boolean)
+      .forEach((action, idx) => {
+        const timestamp = action.created_at;
+        if (!timestamp) {
+          return;
+        }
+        const tone =
+          action.action_type === "Selesai"
+            ? "success"
+            : action.action_type === "Ditolak"
+            ? "danger"
+            : "warning";
+        events.push({
+          id: `action-${action.id || idx}`,
+          label: action.action_type || "Aktivitas",
+          description: action.notes,
+          timestamp,
+          actor: action.user?.name,
+          tone,
+        });
+      });
+
+    if (foundReport.completion_requested_at) {
+      const requesterName = foundReport.completion_requester?.name;
+      events.push({
+        id: "completion-requested",
+        label: "Pengajuan selesai",
+        description: requesterName ? `Diajukan oleh ${requesterName}` : "Menunggu validasi Super Admin",
+        timestamp: foundReport.completion_requested_at,
+        actor: requesterName,
+        tone: "warning",
+      });
+    }
+
+    if (foundReport.completion_validated_at) {
+      const isApproved = foundReport.completion_approved === true;
+      const validatorName = foundReport.completion_validator?.name;
+      const descriptionParts = [isApproved ? "Disetujui" : "Ditolak"];
+      if (!isApproved && foundReport.completion_rejection_reason) {
+        descriptionParts.push(foundReport.completion_rejection_reason);
+      }
+      events.push({
+        id: "completion-validated",
+        label: "Validasi penyelesaian",
+        description: descriptionParts.filter(Boolean).join(" · "),
+        timestamp: foundReport.completion_validated_at,
+        actor: validatorName,
+        tone: isApproved ? "success" : "danger",
+      });
+    }
+
+    if (foundReport.report_status === "Ditolak" && foundReport.rejected_at) {
+      events.push({
+        id: "hard-rejected",
+        label: "Tiket ditolak",
+        description: foundReport.rejection_reason || "Ditolak oleh Super Admin",
+        timestamp: foundReport.rejected_at,
+        tone: "danger",
+      });
+    }
+
+    const hasRejectEvent = events.some((event) => event.tone === "danger");
+    if (foundReport.report_status === "Ditolak" && !hasRejectEvent) {
+      events.push({
+        id: "status-rejected",
+        label: "Status diperbarui menjadi Ditolak",
+        description: "Tiket ditolak oleh Super Admin",
+        timestamp: foundReport.rejected_at || foundReport.updated_at || foundReport.created_at,
+        tone: "danger",
+      });
+    }
+
+    const hasSuccessEvent = events.some((event) => event.tone === "success");
+    if (foundReport.report_status === "Selesai" && !hasSuccessEvent) {
+      events.push({
+        id: "status-resolved",
+        label: "Status diperbarui menjadi Selesai",
+        timestamp: foundReport.updated_at || foundReport.created_at,
+        tone: "success",
+      });
+    }
+
+    if (foundReport.report_status === "Menunggu Validasi" && !foundReport.completion_requested_at) {
+      events.push({
+        id: "status-pending-validation",
+        label: "Menunggu validasi",
+        description: "Menunggu validasi Super Admin",
+        timestamp: foundReport.updated_at || foundReport.created_at,
+        tone: "warning",
+      });
+    }
+
+    return events
+      .filter((event) => event.timestamp)
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+  }, [foundReport, reporterName]);
 
 
   const handleCheckTicket = async () => {
@@ -113,6 +272,23 @@ export function CheckTicketPage() {
                     </div>
                     <Badge className="bg-white text-[#003D82] border border-white/30 px-3 py-1.5 rounded-lg text-xs">{detailStatusLabel}</Badge>
                   </div>
+
+                  {foundReport.report_status === "Ditolak" && (foundReport.rejection_reason || latestRejectActionNote) && (
+                    <div className="rounded-xl border border-white/20 bg-white/5 p-4 mb-4">
+                      <p className="text-white/80 text-xs uppercase tracking-wide mb-1">Alasan Penolakan</p>
+                      <p className="text-white text-sm leading-relaxed">
+                        {foundReport.rejection_reason || latestRejectActionNote}
+                      </p>
+                    </div>
+                  )}
+
+                  {foundReport.report_status !== "Ditolak" && latestRejectActionNote && (
+                    <div className="rounded-xl border border-white/20 bg-white/5 p-4 mb-4">
+                      <p className="text-white/80 text-xs uppercase tracking-wide mb-1">Dikembalikan oleh Admin</p>
+                      <p className="text-white text-sm leading-relaxed">{latestRejectActionNote}</p>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <p className="text-white/60 text-xs uppercase tracking-wide mb-0.5">Nama Pelapor</p>
@@ -199,6 +375,54 @@ export function CheckTicketPage() {
                 </div>
               </div>
             </div>
+
+            {foundReport && timelineEvents.length > 0 && (
+              <div className="rounded-2xl bg-white p-6 border border-gray-200 shadow-sm mt-6">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-10 h-10 bg-gradient-to-br from-[#DBEAFE] to-[#BFDBFE] rounded-xl flex items-center justify-center">
+                    <CheckCircle2 size={20} className="text-[#2563EB]" />
+                  </div>
+                  <div>
+                    <h5 className="text-[#2D3748] font-semibold">Alur Tiket</h5>
+                    <p className="text-xs text-[#6B7280]">Riwayat progres laporan Anda</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {timelineEvents.map((event, idx) => {
+                    const bulletColor =
+                      event.tone === "success"
+                        ? "bg-[#16A34A]"
+                        : event.tone === "danger"
+                        ? "bg-[#DC2626]"
+                        : event.tone === "info"
+                        ? "bg-[#3B82F6]"
+                        : event.tone === "warning"
+                        ? "bg-[#F59E0B]"
+                        : "bg-[#9CA3AF]";
+
+                    return (
+                      <div key={event.id} className="flex gap-3">
+                        <div className="flex flex-col items-center">
+                          <div className={`w-2 h-2 rounded-full ${bulletColor}`} />
+                          {idx < timelineEvents.length - 1 && <div className="w-0.5 flex-1 bg-[#E5E7EB] mt-1" />}
+                        </div>
+                        <div className="pb-4">
+                          <p className="text-sm text-[#1F2937] font-medium">{event.label}</p>
+                          {event.description && <p className="text-xs text-[#6B7280] mt-1 whitespace-pre-line">{event.description}</p>}
+                          {event.timestamp && (
+                            <p className="text-xs text-[#9CA3AF] mt-1">
+                              {formatDateTime(event.timestamp)}
+                              {event.actor ? ` oleh ${event.actor}` : ""}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -20,6 +20,7 @@ const PRIORITY_BADGES = {
 const STATUS_META = {
         Diterima: { label: "Diterima", className: "bg-blue-50 text-blue-700" },
         Diproses: { label: "Diproses", className: "bg-amber-50 text-amber-700" },
+    "Menunggu Validasi": { label: "Menunggu Validasi", className: "bg-amber-50 text-amber-700" },
         Selesai: { label: "Selesai", className: "bg-emerald-50 text-emerald-700" },
         Ditolak: { label: "Ditolak", className: "bg-rose-50 text-rose-700" },
 };

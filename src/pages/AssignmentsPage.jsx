@@ -12,6 +12,7 @@ import { toast } from "sonner@2.0.3";
 const statusStyles = {
   Selesai: "bg-[#D4F4E2] text-[#0F9D58] border-[#A5E8C8]",
   Diproses: "bg-[#FFE8D9] text-[#EA580C] border-[#FFD4A5]",
+  "Menunggu Validasi": "bg-[#FFE8D9] text-[#EA580C] border-[#FFD4A5]",
   Diterima: "bg-[#E0E7FF] text-[#4F46E5] border-[#C7D2FE]",
   Ditolak: "bg-[#FFCDD2] text-[#C62828] border-[#EF9A9A]",
 };
@@ -40,7 +41,7 @@ export function AssignmentsPage() {
   }), [searchQuery, adminFilter, currentPage]);
 
   const { assignments, loading, error, pagination } = useAssignments(filters);
-  const { users: facultyAdmins } = useUsers("admin_fakultas");
+  const { users: facultyAdmins } = useUsers("admin_unit");
 
   useEffect(() => {
     if (error) {
@@ -69,7 +70,7 @@ export function AssignmentsPage() {
       <div className="flex items-center justify-between">
         <div className="white-card bg-white px-6 py-5 rounded-2xl shadow-sm space-y-1">
           <h1 className="text-foreground text-xl font-semibold">Daftar Penugasan</h1>
-          <p className="text-sm text-muted-foreground">Pantau penugasan admin fakultas untuk setiap tiket</p>
+          <p className="text-sm text-muted-foreground">Pantau penugasan admin unit untuk setiap tiket</p>
         </div>
       </div>
 
@@ -92,7 +93,7 @@ export function AssignmentsPage() {
 
           <Select value={adminFilter} onValueChange={setAdminFilter}>
             <SelectTrigger className="bg-[#F9FAFB] border-gray-200 rounded-xl h-11 hover:bg-white">
-              <SelectValue placeholder="Admin Fakultas" />
+              <SelectValue placeholder="Admin Unit" />
             </SelectTrigger>
             <SelectContent className="rounded-xl max-h-60">
               <SelectItem value="all">Semua Admin</SelectItem>
