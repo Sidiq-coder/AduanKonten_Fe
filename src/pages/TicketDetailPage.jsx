@@ -74,6 +74,18 @@ export function TicketDetailPage({ ticketId, onBack }) {
   const assignmentList = Array.isArray(assignments) ? assignments : [];
   const primaryAssignment = assignmentList.length > 0 ? assignmentList[0] : null;
 
+  const isSelfTakenBySuperAdmin = useMemo(() => {
+    if (!isSuperAdmin || !primaryAssignment || !user?.id) {
+      return false;
+    }
+
+    const isSelfAssignee =
+      primaryAssignment.assigned_to?.toString() === user.id.toString() ||
+      primaryAssignment.assigned_to_user?.id?.toString() === user.id.toString();
+
+    return Boolean(isSelfAssignee && !primaryAssignment.unit_id);
+  }, [isSuperAdmin, primaryAssignment, user?.id]);
+
   const [selectedAdmin, setSelectedAdmin] = useState("");
   const [selectedPriority, setSelectedPriority] = useState("medium");
   const [assignmentNotes, setAssignmentNotes] = useState("");
@@ -86,6 +98,8 @@ export function TicketDetailPage({ ticketId, onBack }) {
   const [unitRejectionReason, setUnitRejectionReason] = useState("");
   const [isRejectingTicket, setIsRejectingTicket] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showCompleteSelfModal, setShowCompleteSelfModal] = useState(false);
+  const [showReleaseSelfModal, setShowReleaseSelfModal] = useState(false);
 
   useEffect(() => {
     if (!primaryAssignment) {
@@ -271,6 +285,50 @@ export function TicketDetailPage({ ticketId, onBack }) {
       await Promise.all([fetchTicket(), fetchAssignments()]);
     } catch (err) {
       toast.error("Gagal mengambil tiket", {
+        description: err.response?.data?.message || "Silakan coba lagi",
+      });
+    }
+  };
+
+  const handleCompleteSelfTakenTicket = async () => {
+    if (!normalizedTicketId) {
+      toast.error("Tiket tidak valid");
+      return;
+    }
+
+    try {
+      await createAction({
+        report_id: normalizedTicketId,
+        action_type: "Selesai",
+        notes: "Diselesaikan oleh Super Admin",
+      });
+
+      toast.success("Tiket diselesaikan", {
+        description: "Status tiket berubah menjadi Selesai.",
+      });
+
+      await Promise.all([fetchTicket(), fetchAssignments(), fetchActions()]);
+    } catch (err) {
+      toast.error("Gagal menyelesaikan tiket", {
+        description: err.response?.data?.message || "Silakan coba lagi",
+      });
+    }
+  };
+
+  const handleReleaseSelfTakenTicket = async () => {
+    if (!normalizedTicketId) {
+      toast.error("Tiket tidak valid");
+      return;
+    }
+
+    try {
+      await apiClient.post(`/reports/${normalizedTicketId}/release-self`);
+      toast.success("Pengambilan dibatalkan", {
+        description: "Tiket kembali ke status Diterima.",
+      });
+      await Promise.all([fetchTicket(), fetchAssignments()]);
+    } catch (err) {
+      toast.error("Gagal membatalkan pengambilan", {
         description: err.response?.data?.message || "Silakan coba lagi",
       });
     }
@@ -996,14 +1054,72 @@ export function TicketDetailPage({ ticketId, onBack }) {
                     <div className="space-y-2">
                       <p className="text-sm text-[#1F2937] font-medium">{assignedAdminName || "Admin Unit"}</p>
                       {assignedFacultyName && <p className="text-xs text-[#6B7280]">{assignedFacultyName}</p>}
-                      <p className="text-sm text-[#4B5563]">
-                        Penandaan selesai atau ditolak kini hanya dapat dilakukan dari halaman detail tiket pada dashboard admin
-                        fakultas.
-                      </p>
-                      <p className="text-xs text-[#9CA3AF]">
-                        Gunakan menu penugasan di atas bila perlu mengalihkan admin penanggung jawab atau hubungi admin terkait
-                        untuk meminta pembaruan status.
-                      </p>
+                      {isSelfTakenBySuperAdmin ? (
+                        <div className="space-y-3">
+                          <p className="text-sm text-[#4B5563]">
+                            {isTicketCompleted
+                              ? "Tiket ini sudah selesai."
+                              : "Tiket ini sedang Anda tangani langsung sebagai Super Admin."}
+                          </p>
+
+                          {!isTicketCompleted && (
+                            <>
+                              <div className="grid grid-cols-1 gap-2">
+                                <Button
+                                  onClick={() => setShowCompleteSelfModal(true)}
+                                  className="w-full rounded-xl h-10 bg-[#003D82] hover:bg-[#002B60] text-white"
+                                >
+                                  Selesaikan Tiket
+                                </Button>
+                                <Button
+                                  onClick={() => setShowReleaseSelfModal(true)}
+                                  variant="outline"
+                                  className="w-full rounded-xl h-10 border-[#003D82] text-[#003D82] hover:bg-[#003D82] hover:text-white transition-all"
+                                >
+                                  Batalkan Pengambilan
+                                </Button>
+                              </div>
+
+                              <ConfirmModal
+                                open={showCompleteSelfModal}
+                                title="Konfirmasi Selesaikan Tiket"
+                                description="Apakah Anda yakin ingin menandai tiket ini sebagai Selesai?"
+                                onCancel={() => setShowCompleteSelfModal(false)}
+                                onConfirm={async () => {
+                                  setShowCompleteSelfModal(false);
+                                  await handleCompleteSelfTakenTicket();
+                                }}
+                                confirmText="Ya, Selesaikan"
+                                cancelText="Batal"
+                              />
+
+                              <ConfirmModal
+                                open={showReleaseSelfModal}
+                                title="Konfirmasi Batalkan Pengambilan"
+                                description="Apakah Anda yakin ingin membatalkan pengambilan tiket ini? Tiket akan kembali ke status Diterima."
+                                onCancel={() => setShowReleaseSelfModal(false)}
+                                onConfirm={async () => {
+                                  setShowReleaseSelfModal(false);
+                                  await handleReleaseSelfTakenTicket();
+                                }}
+                                confirmText="Ya, Batalkan"
+                                cancelText="Batal"
+                              />
+                            </>
+                          )}
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-sm text-[#4B5563]">
+                            Penandaan selesai atau ditolak kini hanya dapat dilakukan dari halaman detail tiket pada dashboard admin
+                            fakultas.
+                          </p>
+                          <p className="text-xs text-[#9CA3AF]">
+                            Gunakan menu penugasan di atas bila perlu mengalihkan admin penanggung jawab atau hubungi admin terkait
+                            untuk meminta pembaruan status.
+                          </p>
+                        </>
+                      )}
                     </div>
                   ) : (
                     <div className="space-y-3">
