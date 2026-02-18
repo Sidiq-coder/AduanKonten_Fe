@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Send, AlertCircle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner@2.0.3";
+import ReCAPTCHA from "react-google-recaptcha";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
@@ -23,6 +24,10 @@ export function SubmitReportPage() {
   });
   const [filePreview, setFilePreview] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [recaptchaToken, setRecaptchaToken] = useState("");
+  const recaptchaRef = useRef(null);
+
+  const recaptchaSiteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
 
   const { categories, loading: categoriesLoading, error: categoriesError } = useCategories();
   const { reporterTypes, loading: reporterTypesLoading, error: reporterTypesError } = useReporterTypes();
@@ -67,10 +72,28 @@ export function SubmitReportPage() {
       file: null,
     });
     setFilePreview("");
+    setRecaptchaToken("");
+    recaptchaRef.current?.reset?.();
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
+    if (!recaptchaSiteKey) {
+      toast.error("Captcha belum dikonfigurasi", {
+        description: "Hubungi admin untuk mengatur reCAPTCHA site key.",
+        icon: <AlertCircle size={20} className="text-[#F472B6]" />,
+      });
+      return;
+    }
+
+    if (!recaptchaToken) {
+      toast.error("Silakan verifikasi captcha", {
+        description: "Centang reCAPTCHA sebelum mengirim aduan.",
+        icon: <AlertCircle size={20} className="text-[#F472B6]" />,
+      });
+      return;
+    }
 
     if (!formData.name) {
       toast.error("Nama wajib diisi", { icon: <AlertCircle size={20} className="text-[#F472B6]" /> });
@@ -109,6 +132,7 @@ export function SubmitReportPage() {
         link_site: normalizedLink,
         description: formData.notes,
         attachments: formData.file ? [formData.file] : [],
+        recaptcha_token: recaptchaToken,
       };
 
       const result = await createTicket(payload, true);
@@ -126,8 +150,13 @@ export function SubmitReportPage() {
       });
       handleReset();
     } catch (error) {
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Terjadi kesalahan saat mengirim tiket";
+
       toast.error("Gagal mengirim tiket", {
-        description: error.message || "Terjadi kesalahan saat mengirim tiket",
+        description: errorMessage,
         icon: <AlertCircle size={20} className="text-[#F472B6]" />,
       });
     } finally {
@@ -340,6 +369,24 @@ export function SubmitReportPage() {
                 <Send size={16} className="mr-2" />
                 {isSubmitting ? "Mengirim..." : "Kirim Aduan"}
               </Button>
+            </div>
+
+            <div className="pt-2">
+              <Label className="text-sm">Verifikasi Captcha <span className="text-[#F472B6]">*</span></Label>
+              <div className="mt-2">
+                {recaptchaSiteKey ? (
+                  <ReCAPTCHA
+                    ref={recaptchaRef}
+                    sitekey={recaptchaSiteKey}
+                    onChange={(token) => setRecaptchaToken(token || "")}
+                    onExpired={() => setRecaptchaToken("")}
+                  />
+                ) : (
+                  <p className="text-xs text-[#6B7280]">
+                    reCAPTCHA belum dikonfigurasi.
+                  </p>
+                )}
+              </div>
             </div>
           </form>
         </div>

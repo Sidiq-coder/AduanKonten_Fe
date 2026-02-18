@@ -48,6 +48,9 @@ export const useTickets = (filters, options = {}) => {
         formData.append('category_id', data.category_id);
         formData.append('link_site', data.link_site);
         formData.append('description', data.description);
+        if (data.recaptcha_token) {
+            formData.append('recaptcha_token', data.recaptcha_token);
+        }
         if (data.priority) {
             formData.append('priority', data.priority);
         }

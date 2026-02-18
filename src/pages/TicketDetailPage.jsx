@@ -813,7 +813,7 @@ export function TicketDetailPage({ ticketId, onBack }) {
                       onClick={handleRejectTicketAsUnitAdmin}
                       disabled={isRejectingTicket || isRequestingCompletion}
                       variant="outline"
-                      className="w-full rounded-xl h-11 border-[#DC2626] text-[#DC2626] hover:bg-[#DC2626] hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full rounded-xl h-11 text-red-600 hover:bg-primary hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isRejectingTicket ? "Mengirim..." : "Tolak"}
                     </Button>
@@ -860,7 +860,7 @@ export function TicketDetailPage({ ticketId, onBack }) {
                     onClick={handleRejectCompletion}
                     disabled={isApprovingCompletion || isRejectingCompletion}
                     variant="outline"
-                    className="w-full rounded-xl h-11 border-[#DC2626] text-[#DC2626] hover:bg-[#DC2626] hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full rounded-xl h-11 text-red-600 hover:bg-primary hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isRejectingCompletion ? "Memproses..." : "Tolak"}
                   </Button>
@@ -1067,14 +1067,15 @@ export function TicketDetailPage({ ticketId, onBack }) {
                               <div className="grid grid-cols-1 gap-2">
                                 <Button
                                   onClick={() => setShowCompleteSelfModal(true)}
-                                  className="w-full rounded-xl h-10 bg-[#003D82] hover:bg-[#002B60] text-white"
+                                  variant="brandOutline"
+                                  className="w-full rounded-xl h-10 transition-all"
                                 >
                                   Selesaikan Tiket
                                 </Button>
                                 <Button
                                   onClick={() => setShowReleaseSelfModal(true)}
-                                  variant="outline"
-                                  className="w-full rounded-xl h-10 border-[#003D82] text-[#003D82] hover:bg-[#003D82] hover:text-white transition-all"
+                                  variant="dangerOutlineBrandHover"
+                                  className="w-full rounded-xl h-10 transition-all"
                                 >
                                   Batalkan Pengambilan
                                 </Button>
@@ -1138,8 +1139,8 @@ export function TicketDetailPage({ ticketId, onBack }) {
                               <p className="text-xs text-[#6B7280] mb-2">Atau tangani sendiri tiket ini:</p>
                               <Button
                                 onClick={handleTakeSelf}
-                                variant="outline"
-                                className="w-full rounded-xl h-10 border-[#003D82] text-[#003D82] hover:bg-[#003D82] hover:text-white transition-all"
+                                variant="brandOutline"
+                                className="w-full rounded-xl h-10 transition-all"
                               >
                                 Ambil Tiket (Super Admin)
                               </Button>
@@ -1148,11 +1149,11 @@ export function TicketDetailPage({ ticketId, onBack }) {
                           {/* Tombol Tolak Tiket hanya untuk superadmin dengan modal konfirmasi */}
                           {user?.role === "super_admin" && ticket.report_status !== "Selesai" && ticket.report_status !== "Ditolak" && ticket.report_status !== "Menunggu Validasi" && (
                             <div className="border-t border-gray-200 pt-3">
-                              <p className="text-xs text-[#6B7280] mb-2">Atau tolak tiket ini:</p>
+                              <p className="text-xs text-[#806b6b] mb-2">Atau tolak tiket ini:</p>
                               <Button
                                 onClick={() => setShowRejectModal(true)}
-                                variant="outline"
-                                className="w-full rounded-xl h-10 border-[#DC2626] text-[#DC2626] hover:bg-[#DC2626] hover:text-white transition-all"
+                                variant="dangerOutlineBrandHover"
+                                className="w-full rounded-xl h-10 transition-all"
                               >
                                 Tolak Tiket
                               </Button>
