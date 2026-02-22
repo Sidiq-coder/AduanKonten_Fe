@@ -15,9 +15,23 @@ import {
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { ConfirmModal } from "../components/ui/ConfirmModal";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "../components/ui/dialog";
 import { apiClient } from "../lib/api";
 import { Badge } from "../components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
 import { Label } from "../components/ui/label";
 import { Textarea } from "../components/ui/textarea";
 import { Input } from "../components/ui/input";
@@ -29,11 +43,26 @@ import { useUsers } from "../hooks/useMasterData";
 import { useAuth } from "../contexts/AuthContext";
 
 const statusConfig = {
-  resolved: { label: "Selesai", color: "bg-[#D4F4E2] text-[#16A34A] border-[#A5E8C8]" },
-  in_progress: { label: "Sedang Diproses", color: "bg-[#FFE8D9] text-[#EA580C] border-[#FFD4A5]" },
-  pending_validation: { label: "Menunggu Validasi", color: "bg-[#FFE8D9] text-[#EA580C] border-[#FFD4A5]" },
-  submitted: { label: "Terkirim", color: "bg-[#E0E7FF] text-[#4F46E5] border-[#C7D2FE]" },
-  rejected: { label: "Ditolak", color: "bg-[#FFCDD2] text-[#C62828] border-[#EF9A9A]" },
+  resolved: {
+    label: "Selesai",
+    color: "bg-[#D4F4E2] text-[#16A34A] border-[#A5E8C8]",
+  },
+  in_progress: {
+    label: "Sedang Diproses",
+    color: "bg-[#FFE8D9] text-[#EA580C] border-[#FFD4A5]",
+  },
+  pending_validation: {
+    label: "Menunggu Validasi",
+    color: "bg-[#FFE8D9] text-[#EA580C] border-[#FFD4A5]",
+  },
+  submitted: {
+    label: "Terkirim",
+    color: "bg-[#E0E7FF] text-[#4F46E5] border-[#C7D2FE]",
+  },
+  rejected: {
+    label: "Ditolak",
+    color: "bg-[#FFCDD2] text-[#C62828] border-[#EF9A9A]",
+  },
 };
 
 const priorityOptions = [
@@ -50,12 +79,18 @@ export function TicketDetailPage({ ticketId, onBack }) {
   const { user } = useAuth();
 
   const currentRole = user?.role;
-  const canManageAssignments = currentRole === "super_admin" || currentRole === "admin";
-  const isFacultyRole = currentRole === "admin_unit" || currentRole === "admin_fakultas" || currentRole === "fakultas";
+  const canManageAssignments =
+    currentRole === "super_admin" || currentRole === "admin";
+  const isFacultyRole =
+    currentRole === "admin_unit" ||
+    currentRole === "admin_fakultas" ||
+    currentRole === "fakultas";
   const isSuperAdmin = currentRole === "super_admin";
 
   const resolvedTicketId = ticketId ?? params?.id ?? null;
-  const normalizedTicketId = resolvedTicketId ? resolvedTicketId.toString() : null;
+  const normalizedTicketId = resolvedTicketId
+    ? resolvedTicketId.toString()
+    : null;
 
   const { ticket, loading, error, fetchTicket } = useTicket(normalizedTicketId);
   const assignmentFilters = useMemo(() => {
@@ -64,15 +99,21 @@ export function TicketDetailPage({ ticketId, onBack }) {
     }
     return { report_id: normalizedTicketId, per_page: 50 };
   }, [normalizedTicketId]);
-  const { assignments, createAssignment, updateAssignment, fetchAssignments } = useAssignments(assignmentFilters, {
-    skipInitialFetch: !normalizedTicketId,
-  });
-  const { actions: reportActions, createAction, fetchActions } = useReportActions(normalizedTicketId);
+  const { assignments, createAssignment, updateAssignment, fetchAssignments } =
+    useAssignments(assignmentFilters, {
+      skipInitialFetch: !normalizedTicketId,
+    });
+  const {
+    actions: reportActions,
+    createAction,
+    fetchActions,
+  } = useReportActions(normalizedTicketId);
   const { users } = useUsers();
 
   const adminUsers = Array.isArray(users) ? users : [];
   const assignmentList = Array.isArray(assignments) ? assignments : [];
-  const primaryAssignment = assignmentList.length > 0 ? assignmentList[0] : null;
+  const primaryAssignment =
+    assignmentList.length > 0 ? assignmentList[0] : null;
 
   const isSelfTakenBySuperAdmin = useMemo(() => {
     if (!isSuperAdmin || !primaryAssignment || !user?.id) {
@@ -94,8 +135,11 @@ export function TicketDetailPage({ ticketId, onBack }) {
   const [isRequestingCompletion, setIsRequestingCompletion] = useState(false);
   const [isApprovingCompletion, setIsApprovingCompletion] = useState(false);
   const [isRejectingCompletion, setIsRejectingCompletion] = useState(false);
-  const [completionRejectionReason, setCompletionRejectionReason] = useState("");
+  const [completionRejectionReason, setCompletionRejectionReason] =
+    useState("");
   const [unitRejectionReason, setUnitRejectionReason] = useState("");
+  const [superAdminRejectionReason, setSuperAdminRejectionReason] =
+    useState("");
   const [isRejectingTicket, setIsRejectingTicket] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showCompleteSelfModal, setShowCompleteSelfModal] = useState(false);
@@ -106,7 +150,10 @@ export function TicketDetailPage({ ticketId, onBack }) {
       setSelectedAdmin("");
       return;
     }
-    const assignedId = primaryAssignment.assigned_to || primaryAssignment.user_id || primaryAssignment.assigned_to_user?.id;
+    const assignedId =
+      primaryAssignment.assigned_to ||
+      primaryAssignment.user_id ||
+      primaryAssignment.assigned_to_user?.id;
     if (assignedId) {
       setSelectedAdmin(assignedId.toString());
     }
@@ -119,7 +166,9 @@ export function TicketDetailPage({ ticketId, onBack }) {
       return;
     }
     setAssignmentNotes(primaryAssignment.notes || "");
-    setAssignmentDueDate(primaryAssignment.due_date ? primaryAssignment.due_date.slice(0, 10) : "");
+    setAssignmentDueDate(
+      primaryAssignment.due_date ? primaryAssignment.due_date.slice(0, 10) : "",
+    );
   }, [primaryAssignment]);
 
   useEffect(() => {
@@ -271,6 +320,40 @@ export function TicketDetailPage({ ticketId, onBack }) {
     }
   };
 
+  const handleRejectTicketAsSuperAdmin = async () => {
+    if (!normalizedTicketId) {
+      toast.error("Tiket tidak valid");
+      return;
+    }
+    if (superAdminRejectionReason.trim().length < 10) {
+      toast.error("Alasan penolakan minimal 10 karakter");
+      return;
+    }
+
+    setIsRejectingTicket(true);
+    try {
+      await apiClient.post(`/reports/${normalizedTicketId}/reject`, {
+        rejection_reason: superAdminRejectionReason.trim(),
+      });
+
+      toast.success("Tiket berhasil ditolak", {
+        description: "Email notifikasi telah dikirim ke pelapor.",
+        icon: <CheckCircle2 size={20} className="text-[#16A34A]" />,
+      });
+      setSuperAdminRejectionReason("");
+      setShowRejectModal(false);
+      await Promise.all([fetchTicket(), fetchAssignments(), fetchActions()]);
+    } catch (err) {
+      toast.error("Gagal menolak tiket", {
+        description: err.response?.data?.errors
+          ? Object.values(err.response.data.errors).flat()[0]
+          : err.response?.data?.message || "Silakan coba lagi",
+      });
+    } finally {
+      setIsRejectingTicket(false);
+    }
+  };
+
   const handleTakeSelf = async () => {
     if (!normalizedTicketId) {
       toast.error("Tiket tidak valid");
@@ -337,7 +420,8 @@ export function TicketDetailPage({ ticketId, onBack }) {
   const handleAssign = async () => {
     if (!normalizedTicketId) {
       toast.error("Tiket tidak valid", {
-        description: "ID tiket tidak ditemukan, muat ulang halaman dan coba lagi",
+        description:
+          "ID tiket tidak ditemukan, muat ulang halaman dan coba lagi",
       });
       return;
     }
@@ -346,13 +430,19 @@ export function TicketDetailPage({ ticketId, onBack }) {
       return;
     }
 
-    const targetAdmin = adminUsers.find((admin) => admin.id?.toString() === selectedAdmin);
+    const targetAdmin = adminUsers.find(
+      (admin) => admin.id?.toString() === selectedAdmin,
+    );
     if (!targetAdmin) {
       toast.error("Admin tidak ditemukan");
       return;
     }
 
-    const unitId = targetAdmin.unit_id || targetAdmin.unit?.id || targetAdmin.faculty_id || targetAdmin.faculty?.id;
+    const unitId =
+      targetAdmin.unit_id ||
+      targetAdmin.unit?.id ||
+      targetAdmin.faculty_id ||
+      targetAdmin.faculty?.id;
     if (!unitId) {
       toast.error("Admin belum memiliki data unit", {
         description: "Pastikan admin terkait terhubung ke unit/fakultas",
@@ -384,14 +474,25 @@ export function TicketDetailPage({ ticketId, onBack }) {
         });
       }
 
-      if (isSuperAdmin && selectedPriority && selectedPriority !== previousPriority) {
-        await apiClient.put(`/reports/${normalizedTicketId}`, { priority: selectedPriority });
+      if (
+        isSuperAdmin &&
+        selectedPriority &&
+        selectedPriority !== previousPriority
+      ) {
+        await apiClient.put(`/reports/${normalizedTicketId}`, {
+          priority: selectedPriority,
+        });
       }
 
-      toast.success(isReassignment ? "Penugasan diperbarui" : "Admin berhasil ditugaskan!", {
-        description: isReassignment ? "Tiket berhasil dialihkan" : "Tiket telah ditugaskan",
-        icon: <CheckCircle2 size={20} className="text-[#16A34A]" />,
-      });
+      toast.success(
+        isReassignment ? "Penugasan diperbarui" : "Admin berhasil ditugaskan!",
+        {
+          description: isReassignment
+            ? "Tiket berhasil dialihkan"
+            : "Tiket telah ditugaskan",
+          icon: <CheckCircle2 size={20} className="text-[#16A34A]" />,
+        },
+      );
 
       setSelectedAdmin(targetAdmin.id.toString());
       await Promise.all([fetchAssignments(), fetchTicket()]);
@@ -411,7 +512,10 @@ export function TicketDetailPage({ ticketId, onBack }) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
-          <Loader2 className="animate-spin mx-auto mb-4 text-[#6B7FE8]" size={48} />
+          <Loader2
+            className="animate-spin mx-auto mb-4 text-[#6B7FE8]"
+            size={48}
+          />
           <p className="text-[#6B7280]">Memuat detail tiket...</p>
         </div>
       </div>
@@ -425,8 +529,14 @@ export function TicketDetailPage({ ticketId, onBack }) {
         <div className="text-center">
           <AlertCircle size={48} className="text-[#DC2626] mx-auto mb-4" />
           <h3 className="text-[#B91C1C] mb-2">Gagal memuat tiket</h3>
-          <p className="text-sm text-[#6B7280] mb-4">{errorMessage || "Silakan coba lagi"}</p>
-          <Button onClick={handleBackNavigation} variant="outline" className="rounded-xl">
+          <p className="text-sm text-[#6B7280] mb-4">
+            {errorMessage || "Silakan coba lagi"}
+          </p>
+          <Button
+            onClick={handleBackNavigation}
+            variant="outline"
+            className="rounded-xl"
+          >
             Kembali ke daftar tiket
           </Button>
         </div>
@@ -440,8 +550,14 @@ export function TicketDetailPage({ ticketId, onBack }) {
         <div className="text-center">
           <AlertCircle size={48} className="text-[#9CA3AF] mx-auto mb-4" />
           <h3 className="text-[#2D3748] mb-2">Tiket tidak ditemukan</h3>
-          <p className="text-sm text-[#6B7280] mb-4">Tiket dengan ID tersebut tidak ditemukan</p>
-          <Button onClick={handleBackNavigation} variant="outline" className="rounded-xl">
+          <p className="text-sm text-[#6B7280] mb-4">
+            Tiket dengan ID tersebut tidak ditemukan
+          </p>
+          <Button
+            onClick={handleBackNavigation}
+            variant="outline"
+            className="rounded-xl"
+          >
             Kembali ke daftar tiket
           </Button>
         </div>
@@ -452,18 +568,23 @@ export function TicketDetailPage({ ticketId, onBack }) {
   const badgeKey = statusConfig[ticket.status]
     ? ticket.status
     : ticket.report_status === "Menunggu Validasi"
-    ? "pending_validation"
-    : ticket.report_status === "Selesai"
-    ? "resolved"
-    : ticket.report_status === "Ditolak" && canManageAssignments && assignmentList.length === 0
-    ? "rejected"
-    : ticket.report_status === "Diproses" || assignmentList.length > 0
-    ? "in_progress"
-    : "submitted";
+      ? "pending_validation"
+      : ticket.report_status === "Selesai"
+        ? "resolved"
+        : ticket.report_status === "Ditolak" &&
+            canManageAssignments &&
+            assignmentList.length === 0
+          ? "rejected"
+          : ticket.report_status === "Diproses" || assignmentList.length > 0
+            ? "in_progress"
+            : "submitted";
 
-  const displayStatus = isFacultyRole && ticket.report_status === "Ditolak" && assignmentList.length === 0
-    ? "Ditolak"
-    : statusConfig[badgeKey]?.label || ticket.report_status || "Terkirim";
+  const displayStatus =
+    isFacultyRole &&
+    ticket.report_status === "Ditolak" &&
+    assignmentList.length === 0
+      ? "Ditolak"
+      : statusConfig[badgeKey]?.label || ticket.report_status || "Terkirim";
 
   const postedAt = ticket.created_at
     ? new Date(ticket.created_at).toLocaleString("id-ID", {
@@ -481,75 +602,95 @@ export function TicketDetailPage({ ticketId, onBack }) {
   const reporterTypeLabel = ticket.reporter_type?.name || "-";
   const ticketLink = ticket.link_site || "-";
   const ticketNote = ticket.description || "-";
-  const attachmentsList = Array.isArray(ticket.attachments) ? ticket.attachments : [];
+  const attachmentsList = Array.isArray(ticket.attachments)
+    ? ticket.attachments
+    : [];
   const latestAssignmentDate = primaryAssignment
-    ? primaryAssignment.assigned_at || primaryAssignment.created_at || primaryAssignment.updated_at
+    ? primaryAssignment.assigned_at ||
+      primaryAssignment.created_at ||
+      primaryAssignment.updated_at
     : null;
   const assignedAdminName = primaryAssignment?.assigned_to_user?.name || "";
-  const assignedFacultyName = primaryAssignment?.assigned_to_user?.faculty?.name || primaryAssignment?.faculty?.name || "";
-  const isTicketRejected = isFacultyRole && ticket.report_status === "Ditolak" && assignmentList.length === 0;
-  const isFinalRejected = ticket.report_status === "Ditolak" && canManageAssignments && assignmentList.length === 0;
+  const assignedFacultyName =
+    primaryAssignment?.assigned_to_user?.faculty?.name ||
+    primaryAssignment?.faculty?.name ||
+    "";
+  const isTicketRejected =
+    isFacultyRole &&
+    ticket.report_status === "Ditolak" &&
+    assignmentList.length === 0;
+  const isFinalRejected =
+    ticket.report_status === "Ditolak" &&
+    canManageAssignments &&
+    assignmentList.length === 0;
   const isTicketCompleted = ticket.report_status === "Selesai";
   const isPendingValidation = ticket.report_status === "Menunggu Validasi";
-  const shouldShowAssignmentForm = canManageAssignments && !isFinalRejected && !isTicketCompleted && !isPendingValidation;
+  const shouldShowAssignmentForm =
+    canManageAssignments &&
+    !isFinalRejected &&
+    !isTicketCompleted &&
+    !isPendingValidation;
 
   const timelineEvents = [];
   if (ticket.created_at) {
     timelineEvents.push({
       id: "ticket-created",
       label: "Tiket dibuat",
-      description: ticket.category?.name ? `Kategori ${ticket.category.name}` : undefined,
+      description: ticket.category?.name
+        ? `Kategori ${ticket.category.name}`
+        : undefined,
       timestamp: ticket.created_at,
       actor: reporterName && reporterName !== "-" ? reporterName : undefined,
       tone: "neutral",
     });
   }
 
-  assignmentList
-    .filter(Boolean)
-    .forEach((assignment, idx) => {
-      const timestamp = assignment.assigned_at || assignment.created_at || assignment.updated_at;
-      if (!timestamp)
-        return;
-      const assignee = assignment.assigned_to_user?.name || "Admin Unit";
-      const facultyName = assignment.assigned_to_user?.faculty?.name || assignment.faculty?.name;
-      timelineEvents.push({
-        id: `assignment-${assignment.id || idx}`,
-        label: "Penugasan Admin",
-        description: facultyName ? `${assignee} · ${facultyName}` : `Ditugaskan ke ${assignee}`,
-        timestamp,
-        actor: assignment.assigned_by?.name,
-        tone: "info",
-      });
+  assignmentList.filter(Boolean).forEach((assignment, idx) => {
+    const timestamp =
+      assignment.assigned_at || assignment.created_at || assignment.updated_at;
+    if (!timestamp) return;
+    const assignee = assignment.assigned_to_user?.name || "Admin Unit";
+    const facultyName =
+      assignment.assigned_to_user?.faculty?.name || assignment.faculty?.name;
+    timelineEvents.push({
+      id: `assignment-${assignment.id || idx}`,
+      label: "Penugasan Admin",
+      description: facultyName
+        ? `${assignee} · ${facultyName}`
+        : `Ditugaskan ke ${assignee}`,
+      timestamp,
+      actor: assignment.assigned_by?.name,
+      tone: "info",
     });
+  });
 
-  reportActions
-    ?.filter(Boolean)
-    .forEach((action, idx) => {
-      const timestamp = action.created_at;
-      if (!timestamp)
-        return;
-      const tone = action.action_type === "Selesai"
+  reportActions?.filter(Boolean).forEach((action, idx) => {
+    const timestamp = action.created_at;
+    if (!timestamp) return;
+    const tone =
+      action.action_type === "Selesai"
         ? "success"
         : action.action_type === "Ditolak"
-        ? "danger"
-        : "warning";
-      timelineEvents.push({
-        id: `action-${action.id || idx}`,
-        label: action.action_type || "Aktivitas",
-        description: action.notes,
-        timestamp,
-        actor: action.user?.name,
-        tone,
-      });
+          ? "danger"
+          : "warning";
+    timelineEvents.push({
+      id: `action-${action.id || idx}`,
+      label: action.action_type || "Aktivitas",
+      description: action.notes,
+      timestamp,
+      actor: action.user?.name,
+      tone,
     });
+  });
 
   if (ticket.completion_requested_at) {
     const requesterName = ticket.completion_requester?.name;
     timelineEvents.push({
       id: "completion-requested",
       label: "Pengajuan selesai",
-      description: requesterName ? `Diajukan oleh ${requesterName}` : "Menunggu validasi Super Admin",
+      description: requesterName
+        ? `Diajukan oleh ${requesterName}`
+        : "Menunggu validasi Super Admin",
       timestamp: ticket.completion_requested_at,
       actor: requesterName,
       tone: "warning",
@@ -574,7 +715,9 @@ export function TicketDetailPage({ ticketId, onBack }) {
     });
   }
 
-  const hasRejectAction = timelineEvents.some((event) => event.tone === "danger");
+  const hasRejectAction = timelineEvents.some(
+    (event) => event.tone === "danger",
+  );
   if (ticket.report_status === "Ditolak" && !hasRejectAction) {
     timelineEvents.push({
       id: "status-rejected",
@@ -614,10 +757,14 @@ export function TicketDetailPage({ ticketId, onBack }) {
             </Button>
             <div>
               <h1 className="text-[#111827] mb-1">Detail Tiket</h1>
-              <p className="text-sm text-[#4B5563]">Tiket ID: {ticket.ticket_id}</p>
+              <p className="text-sm text-[#4B5563]">
+                Tiket ID: {ticket.ticket_id}
+              </p>
             </div>
           </div>
-          <Badge className={`${statusConfig[badgeKey]?.color || statusConfig.submitted.color} border px-4 py-2 rounded-xl`}>
+          <Badge
+            className={`${statusConfig[badgeKey]?.color || statusConfig.submitted.color} border px-4 py-2 rounded-xl`}
+          >
             {displayStatus}
           </Badge>
         </div>
@@ -639,7 +786,9 @@ export function TicketDetailPage({ ticketId, onBack }) {
                   <FileText size={16} />
                   Nomor Tiket
                 </Label>
-                <p className="text-[#2D3748] bg-[#F9FAFB] px-4 py-3 rounded-xl">{ticket.ticket_id}</p>
+                <p className="text-[#2D3748] bg-[#F9FAFB] px-4 py-3 rounded-xl">
+                  {ticket.ticket_id}
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -665,7 +814,9 @@ export function TicketDetailPage({ ticketId, onBack }) {
                   <User size={16} />
                   Tipe Pelapor
                 </Label>
-                <p className="text-[#2D3748] bg-[#F9FAFB] px-4 py-3 rounded-xl">{reporterTypeLabel}</p>
+                <p className="text-[#2D3748] bg-[#F9FAFB] px-4 py-3 rounded-xl">
+                  {reporterTypeLabel}
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -673,7 +824,9 @@ export function TicketDetailPage({ ticketId, onBack }) {
                   <User size={16} />
                   Nama Pelapor
                 </Label>
-                <p className="text-[#2D3748] bg-[#F9FAFB] px-4 py-3 rounded-xl">{reporterName}</p>
+                <p className="text-[#2D3748] bg-[#F9FAFB] px-4 py-3 rounded-xl">
+                  {reporterName}
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -681,7 +834,9 @@ export function TicketDetailPage({ ticketId, onBack }) {
                   <AlertCircle size={16} />
                   Kategori
                 </Label>
-                <p className="text-[#2D3748] bg-[#F9FAFB] px-4 py-3 rounded-xl">{ticket.category?.name || "-"}</p>
+                <p className="text-[#2D3748] bg-[#F9FAFB] px-4 py-3 rounded-xl">
+                  {ticket.category?.name || "-"}
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -689,7 +844,9 @@ export function TicketDetailPage({ ticketId, onBack }) {
                   <Mail size={16} />
                   Kontak Pelapor
                 </Label>
-                <p className="text-[#2D3748] bg-[#F9FAFB] px-4 py-3 rounded-xl break-all">{reporterContact}</p>
+                <p className="text-[#2D3748] bg-[#F9FAFB] px-4 py-3 rounded-xl break-all">
+                  {reporterContact}
+                </p>
               </div>
             </div>
 
@@ -729,7 +886,10 @@ export function TicketDetailPage({ ticketId, onBack }) {
             {attachmentsList.length > 0 ? (
               <div className="space-y-3">
                 {attachmentsList.map((attachment, index) => (
-                  <div key={`${attachment.file_path}-${index}`} className="bg-[#F9FAFB] rounded-xl p-4 border border-gray-200">
+                  <div
+                    key={`${attachment.file_path}-${index}`}
+                    className="bg-[#F9FAFB] rounded-xl p-4 border border-gray-200"
+                  >
                     {attachment.file_type?.startsWith("image/") ? (
                       <img
                         src={`${import.meta.env.VITE_API_URL || "http://localhost:8000"}/storage/${attachment.file_path}`}
@@ -744,7 +904,9 @@ export function TicketDetailPage({ ticketId, onBack }) {
                         className="flex items-center gap-2 text-[#6B7FE8] hover:text-[#5A6DD7]"
                       >
                         <FileText size={20} />
-                        <span>{attachment.file_name || `File ${index + 1}`}</span>
+                        <span>
+                          {attachment.file_name || `File ${index + 1}`}
+                        </span>
                       </a>
                     )}
                   </div>
@@ -772,53 +934,66 @@ export function TicketDetailPage({ ticketId, onBack }) {
               <div className="space-y-4">
                 {ticket.report_status === "Menunggu Validasi" ? (
                   <div className="bg-[#EEF2FF] border border-[#C7D2FE] rounded-xl p-3 text-sm text-[#4F46E5]">
-                    Pengajuan penyelesaian sudah dikirim. Menunggu validasi dari Super Admin.
+                    Pengajuan penyelesaian sudah dikirim. Menunggu validasi dari
+                    Super Admin.
                   </div>
                 ) : ticket.report_status !== "Diproses" ? (
                   <div className="bg-[#F9FAFB] border border-gray-200 rounded-xl p-3 text-sm text-[#6B7280]">
-                    Pengajuan penyelesaian hanya dapat dilakukan saat status tiket "Diproses".
+                    Pengajuan penyelesaian hanya dapat dilakukan saat status
+                    tiket "Diproses".
                   </div>
                 ) : (
                   <>
                     <div className="bg-[#F0FDF4] border border-[#BBF7D0] rounded-xl p-3 text-sm text-[#15803D]">
-                      Setelah penanganan selesai, klik tombol di bawah untuk mengajukan validasi penyelesaian ke Super Admin.
+                      Setelah penanganan selesai, klik tombol di bawah untuk
+                      mengajukan validasi penyelesaian ke Super Admin.
                     </div>
                     <Button
                       onClick={handleRequestCompletion}
                       disabled={isRequestingCompletion}
                       className="w-full bg-[#003D82] hover:bg-[#002B60] text-white rounded-xl h-11 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {isRequestingCompletion ? "Mengirim..." : "Ajukan Selesai"}
+                      {isRequestingCompletion
+                        ? "Mengirim..."
+                        : "Ajukan Selesai"}
                     </Button>
                   </>
                 )}
 
-                {ticket.report_status !== "Menunggu Validasi" && ticket.report_status !== "Selesai" && ticket.report_status !== "Ditolak" && (
-                  <div className="border-t border-gray-100 pt-4 mt-4 space-y-3">
-                    <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-xl p-3 text-sm text-[#B91C1C]">
-                      Jika tiket tidak dapat diproses oleh unit Anda, Anda dapat menolak penanganan dan mengembalikan tiket ke Super Admin.
-                    </div>
+                {ticket.report_status !== "Menunggu Validasi" &&
+                  ticket.report_status !== "Selesai" &&
+                  ticket.report_status !== "Ditolak" && (
+                    <div className="border-t border-gray-100 pt-4 mt-4 space-y-3">
+                      <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-xl p-3 text-sm text-[#B91C1C]">
+                        Jika tiket tidak dapat diproses oleh unit Anda, Anda
+                        dapat menolak penanganan dan mengembalikan tiket ke
+                        Super Admin.
+                      </div>
 
-                    <div className="space-y-2">
-                      <Label className="text-[#6B7280] text-sm">Alasan penolakan</Label>
-                      <Textarea
-                        value={unitRejectionReason}
-                        onChange={(e) => setUnitRejectionReason(e.target.value)}
-                        placeholder="Minimal 10 karakter"
-                        className="bg-[#F9FAFB] border-gray-200 rounded-xl min-h-[90px] resize-y"
-                      />
-                    </div>
+                      <div className="space-y-2">
+                        <Label className="text-[#6B7280] text-sm">
+                          Alasan penolakan
+                        </Label>
+                        <Textarea
+                          value={unitRejectionReason}
+                          onChange={(e) =>
+                            setUnitRejectionReason(e.target.value)
+                          }
+                          placeholder="Minimal 10 karakter"
+                          className="bg-[#F9FAFB] border-gray-200 rounded-xl min-h-[90px] resize-y"
+                        />
+                      </div>
 
-                    <Button
-                      onClick={handleRejectTicketAsUnitAdmin}
-                      disabled={isRejectingTicket || isRequestingCompletion}
-                      variant="outline"
-                      className="w-full rounded-xl h-11 text-red-600 hover:bg-primary hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isRejectingTicket ? "Mengirim..." : "Tolak"}
-                    </Button>
-                  </div>
-                )}
+                      <Button
+                        onClick={handleRejectTicketAsUnitAdmin}
+                        disabled={isRejectingTicket || isRequestingCompletion}
+                        variant="outline"
+                        className="w-full rounded-xl h-11 text-red-600 hover:bg-primary hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isRejectingTicket ? "Mengirim..." : "Tolak"}
+                      </Button>
+                    </div>
+                  )}
               </div>
             </div>
           )}
@@ -838,10 +1013,14 @@ export function TicketDetailPage({ ticketId, onBack }) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-[#6B7280] text-sm">Alasan penolakan (jika ditolak)</Label>
+                  <Label className="text-[#6B7280] text-sm">
+                    Alasan penolakan (jika ditolak)
+                  </Label>
                   <Textarea
                     value={completionRejectionReason}
-                    onChange={(e) => setCompletionRejectionReason(e.target.value)}
+                    onChange={(e) =>
+                      setCompletionRejectionReason(e.target.value)
+                    }
                     placeholder="Minimal 10 karakter"
                     className="bg-[#F9FAFB] border-gray-200 rounded-xl min-h-[90px] resize-y"
                   />
@@ -875,29 +1054,44 @@ export function TicketDetailPage({ ticketId, onBack }) {
                 <div className="w-10 h-10 bg-gradient-to-br from-[#E0E7FF] to-[#C7D2FE] rounded-xl flex items-center justify-center">
                   <User size={20} className="text-[#4F46E5]" />
                 </div>
-                <h3 className="text-[#2D3748]">{primaryAssignment ? "Perbarui Penugasan" : "Tugaskan Admin"}</h3>
+                <h3 className="text-[#2D3748]">
+                  {primaryAssignment ? "Perbarui Penugasan" : "Tugaskan Admin"}
+                </h3>
               </div>
 
               <div className="space-y-4">
                 {primaryAssignment && (
                   <div className="bg-[#EEF2FF] border border-[#C7D2FE] rounded-xl p-3 text-xs text-[#4F46E5]">
-                    Tiket saat ini ditangani oleh {assignedAdminName || "admin unit"}. Anda dapat mengalihkan admin atau
-                    memperbarui catatan dan batas waktu di bawah ini.
+                    Tiket saat ini ditangani oleh{" "}
+                    {assignedAdminName || "admin unit"}. Anda dapat mengalihkan
+                    admin atau memperbarui catatan dan batas waktu di bawah ini.
                   </div>
                 )}
 
                 <div className="space-y-2">
                   <Label className="text-[#6B7280] text-sm">Pilih Admin</Label>
-                  <Select value={selectedAdmin || undefined} onValueChange={setSelectedAdmin}>
+                  <Select
+                    value={selectedAdmin || undefined}
+                    onValueChange={setSelectedAdmin}
+                  >
                     <SelectTrigger className="bg-[#F9FAFB] border-gray-200 rounded-xl h-11 hover:bg-white transition-colors">
                       <SelectValue placeholder="Pilih admin..." />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl max-h-60">
                       {adminUsers
-                          .filter((admin) => (admin.role === "admin_unit" || admin.role === "admin_fakultas") && admin.id)
+                        .filter(
+                          (admin) =>
+                            (admin.role === "admin_unit" ||
+                              admin.role === "admin_fakultas") &&
+                            admin.id,
+                        )
                         .map((admin) => (
-                          <SelectItem key={admin.id} value={admin.id.toString()}>
-                              {admin.name} ({admin.unit?.name || admin.faculty?.name || "-"})
+                          <SelectItem
+                            key={admin.id}
+                            value={admin.id.toString()}
+                          >
+                            {admin.name} (
+                            {admin.unit?.name || admin.faculty?.name || "-"})
                           </SelectItem>
                         ))}
                     </SelectContent>
@@ -906,8 +1100,13 @@ export function TicketDetailPage({ ticketId, onBack }) {
 
                 {isSuperAdmin && (
                   <div className="space-y-2">
-                    <Label className="text-[#6B7280] text-sm">Prioritas Tiket (opsional)</Label>
-                    <Select value={selectedPriority} onValueChange={setSelectedPriority}>
+                    <Label className="text-[#6B7280] text-sm">
+                      Prioritas Tiket (opsional)
+                    </Label>
+                    <Select
+                      value={selectedPriority}
+                      onValueChange={setSelectedPriority}
+                    >
                       <SelectTrigger className="bg-[#F9FAFB] border-gray-200 rounded-xl h-11 hover:bg-white transition-colors">
                         <SelectValue placeholder="Pilih prioritas..." />
                       </SelectTrigger>
@@ -920,13 +1119,16 @@ export function TicketDetailPage({ ticketId, onBack }) {
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-[#9CA3AF]">
-                      Bila tidak diubah, prioritas mengikuti nilai "{ticket?.priority || "medium"}".
+                      Bila tidak diubah, prioritas mengikuti nilai "
+                      {ticket?.priority || "medium"}".
                     </p>
                   </div>
                 )}
 
                 <div className="space-y-2">
-                  <Label className="text-[#6B7280] text-sm">Catatan (opsional)</Label>
+                  <Label className="text-[#6B7280] text-sm">
+                    Catatan (opsional)
+                  </Label>
                   <Textarea
                     value={assignmentNotes}
                     onChange={(e) => setAssignmentNotes(e.target.value)}
@@ -936,7 +1138,9 @@ export function TicketDetailPage({ ticketId, onBack }) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-[#6B7280] text-sm">Batas Waktu (opsional)</Label>
+                  <Label className="text-[#6B7280] text-sm">
+                    Batas Waktu (opsional)
+                  </Label>
                   <Input
                     type="date"
                     value={assignmentDueDate}
@@ -946,7 +1150,8 @@ export function TicketDetailPage({ ticketId, onBack }) {
                   />
                   {selectedPriority === "urgent" && (
                     <p className="text-xs text-[#9CA3AF]">
-                      Untuk prioritas urgent, batas waktu otomatis 24 jam dan tidak bisa diubah.
+                      Untuk prioritas urgent, batas waktu otomatis 24 jam dan
+                      tidak bisa diubah.
                     </p>
                   )}
                 </div>
@@ -956,7 +1161,11 @@ export function TicketDetailPage({ ticketId, onBack }) {
                   disabled={!selectedAdmin || isAssigning}
                   className="w-full bg-[#6B7FE8] hover:bg-[#5A6DD7] text-white rounded-xl h-11 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isAssigning ? "Memproses..." : primaryAssignment ? "Perbarui Penugasan" : "Tugaskan"}
+                  {isAssigning
+                    ? "Memproses..."
+                    : primaryAssignment
+                      ? "Perbarui Penugasan"
+                      : "Tugaskan"}
                 </Button>
               </div>
             </div>
@@ -968,10 +1177,15 @@ export function TicketDetailPage({ ticketId, onBack }) {
                 <CheckCircle2 size={20} className="text-[#6B7FE8]" />
               </div>
               <div>
-                <h3 className="text-[#2D3748]">{canManageAssignments ? "Informasi Penugasan" : "Penugasan Fakultas"}</h3>
+                <h3 className="text-[#2D3748]">
+                  {canManageAssignments
+                    ? "Informasi Penugasan"
+                    : "Penugasan Fakultas"}
+                </h3>
                 {isFacultyRole && (
                   <p className="text-xs text-[#6B7280] mt-1">
-                    Tiket ini hanya dapat dipantau oleh admin unit. Hubungi super admin bila perlu perubahan penugasan.
+                    Tiket ini hanya dapat dipantau oleh admin unit. Hubungi
+                    super admin bila perlu perubahan penugasan.
                   </p>
                 )}
               </div>
@@ -980,23 +1194,34 @@ export function TicketDetailPage({ ticketId, onBack }) {
             <div className="space-y-4">
               {assignmentList.length > 0 ? (
                 <div className="bg-white rounded-xl p-4 border border-gray-200">
-                  <Label className="text-[#6B7280] text-xs mb-2 block">Ditugaskan Ke</Label>
+                  <Label className="text-[#6B7280] text-xs mb-2 block">
+                    Ditugaskan Ke
+                  </Label>
                   <div className="space-y-2">
                     {assignmentList.map((assignment, idx) => (
-                      <div key={assignment.id || idx} className="flex items-center gap-3">
+                      <div
+                        key={assignment.id || idx}
+                        className="flex items-center gap-3"
+                      >
                         <div className="w-8 h-8 bg-gradient-to-br from-[#DBEAFE] to-[#BFDBFE] rounded-lg flex items-center justify-center">
                           <span className="text-xs text-[#2563EB]">
-                            {assignment.assigned_to_user?.name?.substring(0, 2).toUpperCase() || "NA"}
+                            {assignment.assigned_to_user?.name
+                              ?.substring(0, 2)
+                              .toUpperCase() || "NA"}
                           </span>
                         </div>
-                        <span className="text-[#2D3748]">{assignment.assigned_to_user?.name || "-"}</span>
+                        <span className="text-[#2D3748]">
+                          {assignment.assigned_to_user?.name || "-"}
+                        </span>
                       </div>
                     ))}
                   </div>
                 </div>
               ) : (
                 <div className="bg-white rounded-xl p-4 border border-gray-200">
-                  <Label className="text-[#6B7280] text-xs mb-2 block">Ditugaskan Ke</Label>
+                  <Label className="text-[#6B7280] text-xs mb-2 block">
+                    Ditugaskan Ke
+                  </Label>
                   <p className="text-[#9CA3AF] text-sm">Belum ada penugasan</p>
                 </div>
               )}
@@ -1028,11 +1253,14 @@ export function TicketDetailPage({ ticketId, onBack }) {
                     Batas Waktu
                   </Label>
                   <p className="text-[#2D3748]">
-                    {new Date(primaryAssignment.due_date).toLocaleString("id-ID", {
-                      day: "2-digit",
-                      month: "long",
-                      year: "numeric",
-                    })}
+                    {new Date(primaryAssignment.due_date).toLocaleString(
+                      "id-ID",
+                      {
+                        day: "2-digit",
+                        month: "long",
+                        year: "numeric",
+                      },
+                    )}
                   </p>
                 </div>
               )}
@@ -1043,17 +1271,27 @@ export function TicketDetailPage({ ticketId, onBack }) {
                     <FileText size={14} />
                     Catatan Penugasan
                   </Label>
-                  <p className="text-sm text-[#374151] whitespace-pre-line">{primaryAssignment.notes}</p>
+                  <p className="text-sm text-[#374151] whitespace-pre-line">
+                    {primaryAssignment.notes}
+                  </p>
                 </div>
               )}
 
               {canManageAssignments ? (
                 <div className="bg-white rounded-xl p-4 border border-dashed border-[#CBD5F5] space-y-3">
-                  <Label className="text-[#6B7280] text-xs block">Status Penanganan</Label>
+                  <Label className="text-[#6B7280] text-xs block">
+                    Status Penanganan
+                  </Label>
                   {primaryAssignment ? (
                     <div className="space-y-2">
-                      <p className="text-sm text-[#1F2937] font-medium">{assignedAdminName || "Admin Unit"}</p>
-                      {assignedFacultyName && <p className="text-xs text-[#6B7280]">{assignedFacultyName}</p>}
+                      <p className="text-sm text-[#1F2937] font-medium">
+                        {assignedAdminName || "Admin Unit"}
+                      </p>
+                      {assignedFacultyName && (
+                        <p className="text-xs text-[#6B7280]">
+                          {assignedFacultyName}
+                        </p>
+                      )}
                       {isSelfTakenBySuperAdmin ? (
                         <div className="space-y-3">
                           <p className="text-sm text-[#4B5563]">
@@ -1112,12 +1350,14 @@ export function TicketDetailPage({ ticketId, onBack }) {
                       ) : (
                         <>
                           <p className="text-sm text-[#4B5563]">
-                            Penandaan selesai atau ditolak kini hanya dapat dilakukan dari halaman detail tiket pada dashboard admin
-                            fakultas.
+                            Penandaan selesai atau ditolak kini hanya dapat
+                            dilakukan dari halaman detail tiket pada dashboard
+                            admin fakultas.
                           </p>
                           <p className="text-xs text-[#9CA3AF]">
-                            Gunakan menu penugasan di atas bila perlu mengalihkan admin penanggung jawab atau hubungi admin terkait
-                            untuk meminta pembaruan status.
+                            Gunakan menu penugasan di atas bila perlu
+                            mengalihkan admin penanggung jawab atau hubungi
+                            admin terkait untuk meminta pembaruan status.
                           </p>
                         </>
                       )}
@@ -1126,62 +1366,55 @@ export function TicketDetailPage({ ticketId, onBack }) {
                     <div className="space-y-3">
                       {isFinalRejected ? (
                         <div className="bg-[#FFCDD2] border border-[#EF9A9A] rounded-xl p-4 text-sm text-[#C62828]">
-                          <p className="font-medium mb-1">Tiket Ditolak Final</p>
-                          <p className="text-xs">Tiket ini telah ditolak dan tidak dapat ditugaskan kembali.</p>
+                          <p className="font-medium mb-1">
+                            Tiket Ditolak Final
+                          </p>
+                          <p className="text-xs">
+                            Tiket ini telah ditolak dan tidak dapat ditugaskan
+                            kembali.
+                          </p>
                         </div>
                       ) : (
                         <>
                           <p className="text-sm text-[#4B5563]">
-                            Tugaskan tiket ke admin unit terlebih dahulu agar status dapat diperbarui melalui dashboard fakultas.
+                            Tugaskan tiket ke admin unit terlebih dahulu agar
+                            status dapat diperbarui melalui dashboard fakultas.
                           </p>
-                          {user?.role === "super_admin" && !primaryAssignment && (ticket.report_status === "Diterima" || ticket.report_status === "Diproses") && (
-                            <div className="border-t border-gray-200 pt-3">
-                              <p className="text-xs text-[#6B7280] mb-2">Atau tangani sendiri tiket ini:</p>
-                              <Button
-                                onClick={handleTakeSelf}
-                                variant="brandOutline"
-                                className="w-full rounded-xl h-10 transition-all"
-                              >
-                                Ambil Tiket (Super Admin)
-                              </Button>
-                            </div>
-                          )}
+                          {user?.role === "super_admin" &&
+                            !primaryAssignment &&
+                            (ticket.report_status === "Diterima" ||
+                              ticket.report_status === "Diproses") && (
+                              <div className="border-t border-gray-200 pt-3">
+                                <p className="text-xs text-[#6B7280] mb-2">
+                                  Atau tangani sendiri tiket ini:
+                                </p>
+                                <Button
+                                  onClick={handleTakeSelf}
+                                  variant="brandOutline"
+                                  className="w-full rounded-xl h-10 transition-all"
+                                >
+                                  Ambil Tiket (Super Admin)
+                                </Button>
+                              </div>
+                            )}
                           {/* Tombol Tolak Tiket hanya untuk superadmin dengan modal konfirmasi */}
-                          {user?.role === "super_admin" && ticket.report_status !== "Selesai" && ticket.report_status !== "Ditolak" && ticket.report_status !== "Menunggu Validasi" && (
-                            <div className="border-t border-gray-200 pt-3">
-                              <p className="text-xs text-[#806b6b] mb-2">Atau tolak tiket ini:</p>
-                              <Button
-                                onClick={() => setShowRejectModal(true)}
-                                variant="dangerOutlineBrandHover"
-                                className="w-full rounded-xl h-10 transition-all"
-                              >
-                                Tolak Tiket
-                              </Button>
-                              <ConfirmModal
-                                open={showRejectModal}
-                                title="Konfirmasi Penolakan Tiket"
-                                description="Apakah Anda yakin ingin menolak tiket ini? Tiket yang ditolak akan langsung dianggap selesai dan tidak dapat ditugaskan kembali."
-                                onCancel={() => setShowRejectModal(false)}
-                                onConfirm={async () => {
-                                  setShowRejectModal(false);
-                                  try {
-                                    await apiClient.put(`/reports/${normalizedTicketId}`, { report_status: "Ditolak" });
-                                    await createAction({
-                                      report_id: normalizedTicketId,
-                                      action_type: "Ditolak",
-                                      notes: "Ditolak oleh Super Admin",
-                                    });
-                                    toast.success("Tiket berhasil ditolak oleh superadmin");
-                                    await Promise.all([fetchTicket(), fetchActions()]);
-                                  } catch (err) {
-                                    toast.error("Gagal menolak tiket");
-                                  }
-                                }}
-                                confirmText="Ya, Tolak Tiket"
-                                cancelText="Batal"
-                              />
-                            </div>
-                          )}
+                          {user?.role === "super_admin" &&
+                            ticket.report_status !== "Selesai" &&
+                            ticket.report_status !== "Ditolak" &&
+                            ticket.report_status !== "Menunggu Validasi" && (
+                              <div className="border-t border-gray-200 pt-3">
+                                <p className="text-xs text-[#B91C1C] mb-2">
+                                  Atau tolak tiket ini:
+                                </p>
+                                <Button
+                                  onClick={() => setShowRejectModal(true)}
+                                  variant="dangerOutlineBrandHover"
+                                  className="w-full rounded-xl h-10 transition-all"
+                                >
+                                  Tolak Tiket
+                                </Button>
+                              </div>
+                            )}
                         </>
                       )}
                     </div>
@@ -1189,9 +1422,12 @@ export function TicketDetailPage({ ticketId, onBack }) {
                 </div>
               ) : (
                 <div className="bg-white rounded-xl p-4 border border-dashed border-[#CBD5F5]">
-                  <Label className="text-[#6B7280] text-xs mb-1 block">Panduan Tindak Lanjut</Label>
+                  <Label className="text-[#6B7280] text-xs mb-1 block">
+                    Panduan Tindak Lanjut
+                  </Label>
                   <p className="text-sm text-[#4B5563]">
-                    Silakan gunakan menu tindakan pada dashboard fakultas untuk memperbarui status atau menambahkan catatan.
+                    Silakan gunakan menu tindakan pada dashboard fakultas untuk
+                    memperbarui status atau menambahkan catatan.
                   </p>
                 </div>
               )}
@@ -1213,21 +1449,31 @@ export function TicketDetailPage({ ticketId, onBack }) {
                     event.tone === "success"
                       ? "bg-[#16A34A]"
                       : event.tone === "danger"
-                      ? "bg-[#DC2626]"
-                      : event.tone === "info"
-                      ? "bg-[#3B82F6]"
-                      : event.tone === "warning"
-                      ? "bg-[#FBBF24]"
-                      : "bg-[#A5E8C8]";
+                        ? "bg-[#DC2626]"
+                        : event.tone === "info"
+                          ? "bg-[#3B82F6]"
+                          : event.tone === "warning"
+                            ? "bg-[#FBBF24]"
+                            : "bg-[#A5E8C8]";
                   return (
                     <div key={event.id} className="flex gap-3">
                       <div className="flex flex-col items-center">
-                        <div className={`w-2 h-2 rounded-full ${bulletColor}`}></div>
-                        {idx < orderedTimeline.length - 1 && <div className="w-0.5 flex-1 bg-[#E5E7EB] mt-1"></div>}
+                        <div
+                          className={`w-2 h-2 rounded-full ${bulletColor}`}
+                        ></div>
+                        {idx < orderedTimeline.length - 1 && (
+                          <div className="w-0.5 flex-1 bg-[#E5E7EB] mt-1"></div>
+                        )}
                       </div>
                       <div className="pb-4">
-                        <p className="text-sm text-[#1F2937] font-medium">{event.label}</p>
-                        {event.description && <p className="text-xs text-[#6B7280] mt-1">{event.description}</p>}
+                        <p className="text-sm text-[#1F2937] font-medium">
+                          {event.label}
+                        </p>
+                        {event.description && (
+                          <p className="text-xs text-[#6B7280] mt-1">
+                            {event.description}
+                          </p>
+                        )}
                         {event.timestamp && (
                           <p className="text-xs text-[#9CA3AF] mt-1">
                             {new Date(event.timestamp).toLocaleString("id-ID", {
@@ -1239,7 +1485,11 @@ export function TicketDetailPage({ ticketId, onBack }) {
                             })}
                           </p>
                         )}
-                        {event.actor && <p className="text-xs text-[#9CA3AF]">oleh {event.actor}</p>}
+                        {event.actor && (
+                          <p className="text-xs text-[#9CA3AF]">
+                            oleh {event.actor}
+                          </p>
+                        )}
                       </div>
                     </div>
                   );
@@ -1250,15 +1500,92 @@ export function TicketDetailPage({ ticketId, onBack }) {
                     <div className="w-2 h-2 bg-[#D1D5DB] rounded-full"></div>
                   </div>
                   <div>
-                    <p className="text-sm text-[#9CA3AF]">Belum ada aktivitas</p>
+                    <p className="text-sm text-[#9CA3AF]">
+                      Belum ada aktivitas
+                    </p>
                   </div>
                 </div>
               )}
             </div>
           </div>
-
         </div>
       </div>
+
+      {/* Dialog for Super Admin Hard Rejection */}
+      <Dialog open={showRejectModal} onOpenChange={setShowRejectModal}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="text-[#1F2937]">Tolak Tiket</DialogTitle>
+            <DialogDescription className="text-[#6B7280]">
+              Tiket yang ditolak akan berubah status menjadi "Ditolak" dan email
+              notifikasi akan dikirim ke pelapor. Tuliskan alasan penolakan di
+              bawah ini.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label
+                htmlFor="rejection-reason"
+                className="text-[#374151] text-sm font-medium"
+              >
+                Alasan Penolakan <span className="text-red-500">*</span>
+              </Label>
+              <Textarea
+                id="rejection-reason"
+                value={superAdminRejectionReason}
+                onChange={(e) => setSuperAdminRejectionReason(e.target.value)}
+                placeholder="Jelaskan alasan penolakan (minimal 10 karakter)..."
+                className="bg-[#F9FAFB] border-gray-200 rounded-xl min-h-[120px] resize-y"
+              />
+              <p className="text-xs text-[#9CA3AF]">
+                {superAdminRejectionReason.length}/10 karakter minimum
+              </p>
+            </div>
+
+            <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-xl p-3">
+              <p className="text-sm text-[#B91C1C]">
+                ⚠️ Peringatan: Tiket yang ditolak tidak dapat ditugaskan kembali
+                dan dianggap selesai secara permanen.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setShowRejectModal(false);
+                setSuperAdminRejectionReason("");
+              }}
+              className="rounded-xl"
+            >
+              Batal
+            </Button>
+            <Button
+              type="button"
+              onClick={handleRejectTicketAsSuperAdmin}
+              disabled={
+                isRejectingTicket ||
+                superAdminRejectionReason.trim().length < 10
+              }
+              style={{
+                backgroundColor:
+                  isRejectingTicket ||
+                  superAdminRejectionReason.trim().length < 10
+                    ? "#FCA5A5"
+                    : "#DC2626",
+                color: "white",
+                borderWidth: 0,
+              }}
+              className="rounded-xl hover:brightness-90 transition-all disabled:cursor-not-allowed"
+            >
+              {isRejectingTicket ? "Mengirim..." : "Tolak Tiket"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
