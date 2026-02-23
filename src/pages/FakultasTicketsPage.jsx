@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Filter, Eye, Loader2 } from "lucide-react";
+import { Search, Filter, Eye, Loader2, Download } from "lucide-react";
 import { Input } from "../components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Badge } from "../components/ui/badge";
@@ -9,12 +9,15 @@ import { useTickets } from "../hooks/useTickets";
 import { useCategories } from "../hooks/useMasterData";
 import { toast } from "sonner@2.0.3";
 import { useAuth } from "../contexts/AuthContext";
+import apiClient from "../lib/api";
 export function FakultasTicketsPage({ onViewTicket, fakultasName }) {
   const navigate = useNavigate();
   const { user } = useAuth();
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
     const [categoryFilter, setCategoryFilter] = useState("all");
+    const [isExportingExcel, setIsExportingExcel] = useState(false);
+    const [isExportingPdf, setIsExportingPdf] = useState(false);
     const facultyDisplayName = fakultasName || user?.unit?.name || user?.faculty?.name || "Fakultas";
     
     const statusApiMap = {
@@ -42,6 +45,71 @@ export function FakultasTicketsPage({ onViewTicket, fakultasName }) {
             });
         }
     }, [error]);
+
+    const extractFilename = (contentDisposition, fallback) => {
+      if (!contentDisposition || typeof contentDisposition !== "string") return fallback;
+      const match = contentDisposition.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i);
+      const value = decodeURIComponent(match?.[1] || match?.[2] || "");
+      return value || fallback;
+    };
+
+    const buildExportParams = () => {
+      const params = {};
+      if (statusFilter !== "all") {
+        params.status = statusApiMap[statusFilter];
+      }
+      if (categoryFilter !== "all") {
+        params.category_id = categoryFilter;
+      }
+      return params;
+    };
+
+    const handleExport = async (format) => {
+      const isExcel = format === "excel";
+      const setIsExporting = isExcel ? setIsExportingExcel : setIsExportingPdf;
+      const endpoint = isExcel ? "/reports/export/excel" : "/reports/export/pdf";
+      const fallbackName = isExcel ? "laporan.xlsx" : "laporan.pdf";
+
+      setIsExporting(true);
+      try {
+        const response = await apiClient.get(endpoint, {
+          params: buildExportParams(),
+          responseType: "blob",
+          headers: {
+            Accept: isExcel
+              ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              : "application/pdf",
+          },
+        });
+
+        const contentType = response.headers?.["content-type"] || (isExcel
+          ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          : "application/pdf");
+        const blob = new Blob([response.data], { type: contentType });
+        const url = window.URL.createObjectURL(blob);
+
+        const disposition = response.headers?.["content-disposition"];
+        const filename = extractFilename(disposition, fallbackName);
+
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = filename;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        window.URL.revokeObjectURL(url);
+
+        toast.success(`Export ${isExcel ? "Excel" : "PDF"} berhasil`, {
+          description: "File sedang diunduh.",
+        });
+      } catch (err) {
+        toast.error(`Gagal export ${isExcel ? "Excel" : "PDF"}`, {
+          description: err?.response?.data?.message || err?.message || "Terjadi kesalahan saat export",
+        });
+      } finally {
+        setIsExporting(false);
+      }
+    };
     const statusConfig = {
       submitted: { label: "Terkirim", color: "bg-[#BBDEFB] text-[#003D82] border-[#90CAF9]" },
       in_progress: { label: "Sedang Diproses", color: "bg-[#FFE082] text-[#F57C00] border-[#FFD54F]" },
@@ -109,17 +177,43 @@ export function FakultasTicketsPage({ onViewTicket, fakultasName }) {
 
     const sortedTickets = useMemo(() => {
       const list = Array.isArray(tickets) ? [...tickets] : [];
+
+      // Order by latest ticket change so any update bubbles to top.
+      // Fallbacks keep behavior stable for older/partial payloads.
       return list.sort((a, b) => {
-        const timeA = new Date(getAssignmentTimestamp(a) || a?.created_at || 0).getTime();
-        const timeB = new Date(getAssignmentTimestamp(b) || b?.created_at || 0).getTime();
+        const timeA = new Date(a?.updated_at || getAssignmentTimestamp(a) || a?.created_at || 0).getTime();
+        const timeB = new Date(b?.updated_at || getAssignmentTimestamp(b) || b?.created_at || 0).getTime();
         return timeB - timeA;
       });
     }, [tickets]);
 
     return (<div>
-      <div className="mb-8">
-        <h1 className="text-white text-2xl font-semibold mb-2">Tiket {facultyDisplayName}</h1>
-        <p className="text-white/80">Kelola semua tiket aduan konten dari {facultyDisplayName}</p>
+      <div className="mb-8 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-white text-2xl font-semibold mb-2">Tiket {facultyDisplayName}</h1>
+          <p className="text-white/80">Kelola semua tiket aduan konten dari {facultyDisplayName}</p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => handleExport("excel")}
+            disabled={isExportingExcel || isExportingPdf}
+            className="rounded-lg"
+          >
+            {isExportingExcel ? <Loader2 className="animate-spin mr-2" size={16} /> : <Download className="mr-2" size={16} />}
+            Export Excel
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => handleExport("pdf")}
+            disabled={isExportingExcel || isExportingPdf}
+            className="rounded-lg"
+          >
+            {isExportingPdf ? <Loader2 className="animate-spin mr-2" size={16} /> : <Download className="mr-2" size={16} />}
+            Export PDF
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}

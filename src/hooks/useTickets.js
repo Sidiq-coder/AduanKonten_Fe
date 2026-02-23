@@ -71,6 +71,41 @@ export const useTickets = (filters, options = {}) => {
         }
         return response.data.data;
     };
+
+    const createAdminTicket = async (data) => {
+        const formData = new FormData();
+        formData.append('name', data.name);
+        if (data.phone) {
+            formData.append('phone', data.phone);
+        }
+        if (data.email) {
+            formData.append('email', data.email);
+        }
+        formData.append('reporter_type_id', data.reporter_type_id);
+        formData.append('category_id', data.category_id);
+        formData.append('link_site', data.link_site);
+        formData.append('description', data.description);
+        if (data.recaptcha_token) {
+            formData.append('recaptcha_token', data.recaptcha_token);
+        }
+        if (data.priority) {
+            formData.append('priority', data.priority);
+        }
+
+        if (data.attachments && data.attachments.length > 0) {
+            data.attachments.forEach((file, index) => {
+                formData.append(`attachments[${index}]`, file);
+            });
+        }
+
+        const response = await apiClient.post('/admin/reports', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+        await fetchTickets();
+        return response.data.data;
+    };
     const updateTicket = async (id, data) => {
         const response = await apiClient.put(`/reports/${id}`, data);
         await fetchTickets(); // Refresh list
@@ -87,6 +122,7 @@ export const useTickets = (filters, options = {}) => {
         pagination,
         fetchTickets,
         createTicket,
+        createAdminTicket,
         updateTicket,
         deleteTicket,
     };

@@ -44,6 +44,13 @@ export function FakultasSidebar({ currentPage, onNavigate, fakultasName, userEma
             <Ticket size={20}/>
             <span className="text-sm">Tiket Fakultas</span>
           </button>
+
+          <button onClick={() => onNavigate("create-ticket")} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${currentPage === "create-ticket"
+            ? "bg-white text-primary shadow-sm"
+            : "text-white/90 hover:bg-white/15"}`}>
+            <Ticket size={20}/>
+            <span className="text-sm">Buat Tiket</span>
+          </button>
         </nav>
       </div>
       

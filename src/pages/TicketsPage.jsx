@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Filter, Eye, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { Search, Filter, Eye, ChevronLeft, ChevronRight, Loader2, Download } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Input } from "../components/ui/input";
 import { Badge } from "../components/ui/badge";
@@ -25,6 +25,8 @@ export function TicketsPage({ onViewTicket }) {
     const [priorityFilter, setPriorityFilter] = useState("all");
     const [facultyFilter, setFacultyFilter] = useState("all");
     const [currentPage, setCurrentPage] = useState(1);
+    const [isExportingExcel, setIsExportingExcel] = useState(false);
+    const [isExportingPdf, setIsExportingPdf] = useState(false);
     
     const filters = {
         search: searchQuery || undefined,
@@ -115,12 +117,95 @@ export function TicketsPage({ onViewTicket }) {
         isCancelled = true;
       };
     }, [tickets]);
+
+    const extractFilename = (contentDisposition, fallback) => {
+      if (!contentDisposition || typeof contentDisposition !== "string") return fallback;
+      const match = contentDisposition.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i);
+      const value = decodeURIComponent(match?.[1] || match?.[2] || "");
+      return value || fallback;
+    };
+
+    const buildExportParams = () => {
+      const params = {};
+      if (statusFilter !== "all") params.status = statusFilter;
+      if (priorityFilter !== "all") params.priority = priorityFilter;
+      return params;
+    };
+
+    const handleExport = async (format) => {
+      const isExcel = format === "excel";
+      const setIsExporting = isExcel ? setIsExportingExcel : setIsExportingPdf;
+      const endpoint = isExcel ? "/reports/export/excel" : "/reports/export/pdf";
+      const fallbackName = isExcel ? "laporan.xlsx" : "laporan.pdf";
+
+      setIsExporting(true);
+      try {
+        const response = await apiClient.get(endpoint, {
+          params: buildExportParams(),
+          responseType: "blob",
+          headers: {
+            Accept: isExcel
+              ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              : "application/pdf",
+          },
+        });
+
+        const contentType = response.headers?.["content-type"] || (isExcel
+          ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          : "application/pdf");
+        const blob = new Blob([response.data], { type: contentType });
+        const url = window.URL.createObjectURL(blob);
+
+        const disposition = response.headers?.["content-disposition"];
+        const filename = extractFilename(disposition, fallbackName);
+
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = filename;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        window.URL.revokeObjectURL(url);
+
+        toast.success(`Export ${isExcel ? "Excel" : "PDF"} berhasil`, {
+          description: "File sedang diunduh.",
+        });
+      } catch (err) {
+        toast.error(`Gagal export ${isExcel ? "Excel" : "PDF"}`, {
+          description: err?.response?.data?.message || err?.message || "Terjadi kesalahan saat export",
+        });
+      } finally {
+        setIsExporting(false);
+      }
+    };
+
     return (<div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="white-card bg-white px-6 py-5 rounded-2xl shadow-sm space-y-1">
           <h1 className="text-foreground text-xl font-semibold">Daftar Tiket</h1>
           <p className="text-sm text-muted-foreground">Kelola dan pantau semua tiket pengaduan</p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => handleExport("excel")}
+            disabled={isExportingExcel || isExportingPdf}
+            className="rounded-xl border-gray-200 hover:bg-[#F8F9FE]"
+          >
+            {isExportingExcel ? <Loader2 className="animate-spin mr-2" size={16} /> : <Download className="mr-2" size={16} />}
+            Export Excel
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => handleExport("pdf")}
+            disabled={isExportingExcel || isExportingPdf}
+            className="rounded-xl border-gray-200 hover:bg-[#F8F9FE]"
+          >
+            {isExportingPdf ? <Loader2 className="animate-spin mr-2" size={16} /> : <Download className="mr-2" size={16} />}
+            Export PDF
+          </Button>
         </div>
       </div>
 

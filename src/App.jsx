@@ -5,6 +5,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { LandingPage } from "./pages/LandingPage";
 import { LandingHome } from "./pages/LandingHome";
 import { SubmitReportPage } from "./pages/SubmitReportPage";
+import { AdminSubmitReportPage } from "./pages/AdminSubmitReportPage";
 import { CheckTicketPage } from "./pages/CheckTicketPage";
 import { LoginPage } from "./pages/LoginPage";
 import { TicketsPage } from "./pages/TicketsPage";
@@ -43,6 +44,7 @@ function AdminLayout() {
   const resolveSection = () => {
     if (currentPath === '/admin' || currentPath === '/admin/') return 'dashboard';
     if (currentPath.startsWith('/admin/tickets')) return 'tickets';
+    if (currentPath.startsWith('/admin/buat-tiket')) return 'create-ticket';
     if (currentPath.startsWith('/admin/assignments')) return 'assignments';
     if (currentPath.startsWith('/admin/settings')) return 'settings';
     if (currentPath.startsWith('/admin/admins')) return 'manage-admins';
@@ -52,6 +54,7 @@ function AdminLayout() {
     const relative = {
       dashboard: '',
       tickets: '/tickets',
+      'create-ticket': '/buat-tiket',
       settings: '/settings',
       'manage-admins': '/admins',
       assignments: '/assignments',
@@ -105,6 +108,7 @@ function FakultasLayout() {
   const resolveSection = () => {
     if (currentPath === '/fakultas' || currentPath === '/fakultas/') return 'dashboard';
     if (currentPath.startsWith('/fakultas/tickets')) return 'tickets';
+    if (currentPath.startsWith('/fakultas/buat-tiket')) return 'create-ticket';
     if (currentPath.startsWith('/fakultas/settings')) return 'settings';
     return 'dashboard';
   };
@@ -112,6 +116,7 @@ function FakultasLayout() {
     const relative = {
       dashboard: '',
       tickets: '/tickets',
+      'create-ticket': '/buat-tiket',
       settings: '/settings',
     };
     const suffix = relative[target] ?? '';
@@ -160,6 +165,7 @@ export default function App() {
             <Route index element={<AdminHome />}/>
             <Route path="tickets" element={<TicketsPage />}/>
             <Route path="tickets/:id" element={<TicketDetailPage />}/>
+            <Route path="buat-tiket" element={<AdminSubmitReportPage />}/>
             <Route path="assignments" element={<AssignmentsPage />}/>
             <Route path="settings" element={<SettingsPage />}/>
             <Route path="admins" element={<ManageAdminsPage />}/>
@@ -172,6 +178,7 @@ export default function App() {
             <Route index element={<FakultasHome />}/>
             <Route path="tickets" element={<FakultasTicketsPage />}/>
             <Route path="tickets/:id" element={<TicketDetailPage />}/>
+            <Route path="buat-tiket" element={<AdminSubmitReportPage />}/>
             <Route path="settings" element={<SettingsPage />}/>
           </Route>
 
