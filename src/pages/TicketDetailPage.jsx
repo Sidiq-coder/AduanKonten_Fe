@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { ConfirmModal } from "../components/ui/ConfirmModal";
+import { Combobox } from "../components/ui/combobox";
 import {
   Dialog,
   DialogContent,
@@ -1070,32 +1071,25 @@ export function TicketDetailPage({ ticketId, onBack }) {
 
                 <div className="space-y-2">
                   <Label className="text-[#6B7280] text-sm">Pilih Admin</Label>
-                  <Select
+                  <Combobox
+                    options={adminUsers
+                      .filter(
+                        (admin) =>
+                          (admin.role === "admin_unit" ||
+                            admin.role === "admin_fakultas") &&
+                          admin.id,
+                      )
+                      .map((admin) => ({
+                        value: admin.id.toString(),
+                        label: `${admin.name} (${admin.unit?.name || admin.faculty?.name || "-"})`,
+                        searchValue: `${admin.name} ${admin.unit?.name || admin.faculty?.name || ""}`,
+                      }))}
                     value={selectedAdmin || undefined}
                     onValueChange={setSelectedAdmin}
-                  >
-                    <SelectTrigger className="bg-[#F9FAFB] border-gray-200 rounded-xl h-11 hover:bg-white transition-colors">
-                      <SelectValue placeholder="Pilih admin..." />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl max-h-60">
-                      {adminUsers
-                        .filter(
-                          (admin) =>
-                            (admin.role === "admin_unit" ||
-                              admin.role === "admin_fakultas") &&
-                            admin.id,
-                        )
-                        .map((admin) => (
-                          <SelectItem
-                            key={admin.id}
-                            value={admin.id.toString()}
-                          >
-                            {admin.name} (
-                            {admin.unit?.name || admin.faculty?.name || "-"})
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
+                    placeholder="Pilih admin..."
+                    searchPlaceholder="Cari nama admin atau unit..."
+                    emptyText="Admin tidak ditemukan."
+                  />
                 </div>
 
                 {isSuperAdmin && (
