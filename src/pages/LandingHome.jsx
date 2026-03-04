@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Shield, Search, Send, Target, Award, Users, Lock, FileText, CheckCircle2, AlertCircle } from "lucide-react";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
+import unilaLogo from "../assets/unila-logo.png";
 
 export function LandingHome() {
   const navigate = useNavigate();
@@ -65,7 +66,7 @@ export function LandingHome() {
 
             <div className="relative hidden lg:block min-w-0">
               <div className="flex items-center justify-center">
-                <img src="/src/assets/unila-logo.png" alt="Logo Universitas Lampung" className="w-full max-w-[720px] h-[560px] object-contain" />
+                <img src={unilaLogo} alt="Logo Universitas Lampung" className="w-full max-w-[720px] h-[560px] object-contain" />
               </div>
             </div>
           </div>

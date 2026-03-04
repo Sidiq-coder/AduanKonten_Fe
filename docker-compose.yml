@@ -1,5 +1,17 @@
 services:
   aduan-konten-fe:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aduan-konten-fe
+    restart: always
     ports:
       - "5173:80"
+    environment:
+      - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
